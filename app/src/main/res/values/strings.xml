@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">特别短信提醒</string>
+    <string name="pref_listener_enabled_key">listener_enabled</string>
+    <string name="alert_title">特别关注短信提醒</string>
+    <string name="alert_dismiss_btn">我已知晓</string>
+    <string name="permission_not_granted_title">权限未授予</string>
+    <string name="permission_not_granted_msg">应用需要“接收短信”和“读取短信”权限才能在后台匹配特别关注联系人并进行响铃提醒，点击去授权。</string>
+    <string name="post_notification_permission_msg">应用需要“发送通知”权限才能在收到短信时进行弹窗和通知提醒。</string>
+</resources>

@@ -1,0 +1,14 @@
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="primary">#FF0F62FE</color>
+    <color name="primary_dark">#FF0043CE</color>
+    <color name="accent">#FFD0E2FF</color>
+    <color name="bg_light">#FFF4F4F4</color>
+    <color name="card_bg">#FFFFFFFF</color>
+    <color name="text_main">#FF161616</color>
+    <color name="text_muted">#FF525252</color>
+    <color name="red">#FFDA1E28</color>
+    <color name="green">#FF198038</color>
+    <color name="transparent">#00000000</color>
+</resources>

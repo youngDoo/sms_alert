@@ -1,0 +1,1 @@
+这是一个基于Android studio开发的纯轻量级第三方短信增强提醒工具app，使用gradle构建。
