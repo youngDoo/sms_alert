@@ -5,7 +5,12 @@ build/
 local.properties
 
 # --- IDE ---
-.idea/
+# .idea/ shared config is tracked; personal state files excluded below
+.idea/workspace.xml
+.idea/deploymentTargetSelector.xml
+.idea/deviceManager.xml
+.idea/appInsightsSettings.xml
+.idea/caches/
 .DS_Store
 
 # --- Native ---
