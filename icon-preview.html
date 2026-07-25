@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SmsAlertTool — 图标预览</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  background: #0f0f23;
+  display: flex; justify-content: center; align-items: center;
+  min-height: 100vh; font-family: system-ui, sans-serif; color: #e2e8f0;
+}
+.container { text-align: center; }
+
+h1 { font-size: 1.4rem; margin-bottom: 0.5rem; color: #94a3b8; font-weight: 400; }
+h1 span { color: #e2e8f0; font-weight: 600; }
+
+.grid { display: flex; gap: 40px; justify-content: center; flex-wrap: wrap; margin: 30px 0; }
+.card { text-align: center; }
+.card-label { font-size: 0.75rem; color: #64748b; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+.icon-wrap {
+  display: inline-block; border-radius: 22%;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4), 0 1px 3px rgba(0,0,0,0.3);
+  overflow: hidden;
+}
+
+/* Sizes */
+.size-lg { width: 180px; height: 180px; border-radius: 24%; }
+.size-md { width: 108px; height: 108px; border-radius: 22%; }
+.size-sm { width: 64px; height: 64px; border-radius: 18%; }
+
+/* SVG canvas inside */
+.icon-wrap svg { display: block; }
+
+.info { margin-top: 32px; font-size: 0.8rem; color: #475569; line-height: 1.6; }
+.info strong { color: #94a3b8; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1><span>SmsAlertTool</span> · 图标预览</h1>
+
+<div class="grid">
+
+<!-- 大尺寸 -->
+<div class="card">
+  <div class="card-label">大图标</div>
+  <div class="icon-wrap size-lg">
+    <svg width="180" height="180" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg" x1="-12" y1="0" x2="120" y2="108" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4F46E5"/>
+          <stop offset="100%" stop-color="#06B6D4"/>
+        </linearGradient>
+        <linearGradient id="bubble" x1="20" y1="18" x2="84" y2="60" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#FF6B35"/>
+          <stop offset="100%" stop-color="#EC4899"/>
+        </linearGradient>
+      </defs>
+
+      <!-- background -->
+      <rect width="108" height="108" rx="0" fill="url(#bg)"/>
+
+      <!-- pulse ring 1 -->
+      <ellipse cx="54" cy="48" rx="32" ry="32" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.12"/>
+      <!-- pulse ring 2 -->
+      <ellipse cx="54" cy="48" rx="28" ry="28" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.18"/>
+
+      <!-- speech bubble -->
+      <path d="M28,18 L76,18 Q84,18 84,26 L84,52 Q84,60 76,60 L56,60 L48,74 L54,60 L28,60 Q20,60 20,52 L20,26 Q20,18 28,18 Z" fill="url(#bubble)"/>
+
+      <!-- bubble highlight -->
+      <path d="M28,18 L76,18 Q84,18 84,26 L84,34 Q84,26 76,26 L28,26 Q20,26 20,34 L20,26 Q20,18 28,18 Z" fill="#fff" opacity="0.12"/>
+
+      <!-- notification arrow -->
+      <path d="M42,50 C40,48 40,44 42,42 L50,34 L46,36 L54,26 L62,34 L58,32 L50,40 C48,42 48,46 50,48 Z" fill="#fff"/>
+
+      <!-- arrow motion accent -->
+      <path d="M46,30 L52,24 L54,26 L50,32 Z" fill="#fff" opacity="0.5"/>
+
+      <!-- notification dots -->
+      <circle cx="65" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+      <circle cx="72" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+      <circle cx="79" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+    </svg>
+  </div>
+</div>
+
+<!-- 中尺寸 (手机桌面) -->
+<div class="card">
+  <div class="card-label">桌面图标 (108dp)</div>
+  <div class="icon-wrap size-md">
+    <svg width="108" height="108" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg2" x1="-12" y1="0" x2="120" y2="108" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4F46E5"/>
+          <stop offset="100%" stop-color="#06B6D4"/>
+        </linearGradient>
+        <linearGradient id="bubble2" x1="20" y1="18" x2="84" y2="60" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#FF6B35"/>
+          <stop offset="100%" stop-color="#EC4899"/>
+        </linearGradient>
+      </defs>
+      <rect width="108" height="108" rx="0" fill="url(#bg2)"/>
+      <ellipse cx="54" cy="48" rx="32" ry="32" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.12"/>
+      <ellipse cx="54" cy="48" rx="28" ry="28" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.18"/>
+      <path d="M28,18 L76,18 Q84,18 84,26 L84,52 Q84,60 76,60 L56,60 L48,74 L54,60 L28,60 Q20,60 20,52 L20,26 Q20,18 28,18 Z" fill="url(#bubble2)"/>
+      <path d="M28,18 L76,18 Q84,18 84,26 L84,34 Q84,26 76,26 L28,26 Q20,26 20,34 L20,26 Q20,18 28,18 Z" fill="#fff" opacity="0.12"/>
+      <path d="M42,50 C40,48 40,44 42,42 L50,34 L46,36 L54,26 L62,34 L58,32 L50,40 C48,42 48,46 50,48 Z" fill="#fff"/>
+      <path d="M46,30 L52,24 L54,26 L50,32 Z" fill="#fff" opacity="0.5"/>
+      <circle cx="65" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+      <circle cx="72" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+      <circle cx="79" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+    </svg>
+  </div>
+</div>
+
+<!-- 小尺寸 -->
+<div class="card">
+  <div class="card-label">小图标</div>
+  <div class="icon-wrap size-sm">
+    <svg width="64" height="64" viewBox="0 0 108 108" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="bg3" x1="-12" y1="0" x2="120" y2="108" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#4F46E5"/>
+          <stop offset="100%" stop-color="#06B6D4"/>
+        </linearGradient>
+        <linearGradient id="bubble3" x1="20" y1="18" x2="84" y2="60" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stop-color="#FF6B35"/>
+          <stop offset="100%" stop-color="#EC4899"/>
+        </linearGradient>
+      </defs>
+      <rect width="108" height="108" rx="0" fill="url(#bg3)"/>
+      <ellipse cx="54" cy="48" rx="32" ry="32" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.15"/>
+      <ellipse cx="54" cy="48" rx="28" ry="28" fill="none" stroke="#fff" stroke-width="1.5" opacity="0.20"/>
+      <path d="M28,18 L76,18 Q84,18 84,26 L84,52 Q84,60 76,60 L56,60 L48,74 L54,60 L28,60 Q20,60 20,52 L20,26 Q20,18 28,18 Z" fill="url(#bubble3)"/>
+      <path d="M28,18 L76,18 Q84,18 84,26 L84,34 Q84,26 76,26 L28,26 Q20,26 20,34 L20,26 Q20,18 28,18 Z" fill="#fff" opacity="0.12"/>
+      <path d="M42,50 C40,48 40,44 42,42 L50,34 L46,36 L54,26 L62,34 L58,32 L50,40 C48,42 48,46 50,48 Z" fill="#fff"/>
+      <path d="M46,30 L52,24 L54,26 L50,32 Z" fill="#fff" opacity="0.5"/>
+      <circle cx="65" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+      <circle cx="72" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+      <circle cx="79" cy="30" r="2.5" fill="#fff" opacity="0.85"/>
+    </svg>
+  </div>
+</div>
+
+</div>
+
+<div class="info">
+  <strong>配色：</strong>背景 靛蓝→青蓝渐变 · 气泡 珊瑚橙→玫红饱和度渐变 · 白色箭头+通知点<br>
+  <strong>元素：</strong>通知脉冲环 + 对话气泡 + 动态箭头 + 未读提醒三点<br>
+  <strong>自适应图标：</strong>Android Adaptive Icon (API 26+)，支持 OEM 遮罩裁切
+</div>
+</div>
+</body>
+</html>
