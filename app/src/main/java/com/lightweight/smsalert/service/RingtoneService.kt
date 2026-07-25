@@ -83,10 +83,14 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
             getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
         }
 
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsAlertTool:RingingWakeLock")
-        wakeLock?.acquire(10 * 60 * 1000L)
-        Log.d(TAG, "RingtoneService created and WakeLock acquired.")
+        try {
+            val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsAlertTool:RingingWakeLock")
+            wakeLock?.acquire(10 * 60 * 1000L)
+            Log.d(TAG, "RingtoneService created and WakeLock acquired.")
+        } catch (e: SecurityException) {
+            Log.e(TAG, "WakeLock permission denied: ${e.message}")
+        }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
