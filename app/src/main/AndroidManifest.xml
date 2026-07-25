@@ -8,6 +8,8 @@
     <!-- 修复：添加 WAKE_LOCK 权限（SmsReceiver/RingtoneService 均使用 WakeLock） -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <uses-permission android:name="android.permission.VIBRATE" />
+
     <application
         android:name=".SmsAlertApplication"
         android:allowBackup="false"

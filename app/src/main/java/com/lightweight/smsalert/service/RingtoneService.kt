@@ -127,7 +127,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
                 .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
                 .build()
 
-            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+            focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
                 .setAudioAttributes(playbackAttributes)
                 .setAcceptsDelayedFocusGain(true)
                 .setOnAudioFocusChangeListener(this)
@@ -142,9 +142,20 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
             val res = audioManager?.requestAudioFocus(
                 this,
                 AudioManager.STREAM_ALARM,
-                AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK
+                AudioManager.AUDIOFOCUS_GAIN
             )
             Log.d(TAG, "Legacy AudioFocus request result: $res")
+        }
+    }
+
+    private fun resolveRingtoneUri(ringtoneUriStr: String): Uri {
+        return when (ringtoneUriStr) {
+            "alarm" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+            "ringtone" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            "notification" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
+            "default", "" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
+                ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
+            else -> Uri.parse(ringtoneUriStr)
         }
     }
 
@@ -153,12 +164,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer()
 
-            val uri = if (ringtoneUriStr == "default" || ringtoneUriStr.isEmpty()) {
-                RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
-                    ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
-            } else {
-                Uri.parse(ringtoneUriStr)
-            }
+            val uri = resolveRingtoneUri(ringtoneUriStr)
 
             mediaPlayer?.apply {
                 setDataSource(this@RingtoneService, uri)
