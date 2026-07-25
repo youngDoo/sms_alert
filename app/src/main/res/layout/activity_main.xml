@@ -1,213 +1,392 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_light"
-    android:padding="16dp">
+    android:fitsSystemWindows="true">
 
-    <TextView
-        android:id="@+id/tvAppTitle"
-        android:layout_width="wrap_content"
+    <com.google.android.material.appbar.AppBarLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="特别短信提醒"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_main"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:fitsSystemWindows="true"
+        app:elevation="0dp">
 
-    <TextView
-        android:id="@+id/tvAppSubTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="仅做短信增强提醒 · 零后台常驻"
-        android:textSize="12sp"
-        android:textColor="@color/text_muted"
-        app:layout_constraintTop_toBottomOf="@id/tvAppTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        android:layout_marginTop="2dp" />
-
-    <!-- Status Card -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardStatus"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="@color/card_bg"
-        android:layout_marginTop="16dp"
-        app:layout_constraintTop_toBottomOf="@id/tvAppSubTitle"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <androidx.constraintlayout.widget.ConstraintLayout
+        <com.google.android.material.appbar.MaterialToolbar
+            android:id="@+id/toolbar"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:padding="16dp">
+            android:layout_height="?attr/actionBarSize"
+            android:paddingHorizontal="8dp"
+            app:title="特别短信提醒"
+            app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
+            app:titleTextColor="@color/text_main">
 
             <TextView
-                android:id="@+id/tvStatusLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="短信监听服务"
-                android:textSize="16sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_main"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintStart_toStartOf="parent" />
+                android:layout_gravity="end"
+                android:text="零后台 · 不耗电"
+                android:textSize="11sp"
+                android:textColor="@color/success"
+                android:background="@drawable/bg_chip_success"
+                android:paddingHorizontal="10dp"
+                android:paddingVertical="3dp"
+                android:layout_marginEnd="4dp" />
 
-            <TextView
-                android:id="@+id/tvStatusDesc"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:text="开启后将动态注册短信广播并配置兜底任务"
-                android:textSize="12sp"
-                android:textColor="@color/text_muted"
-                android:layout_marginTop="4dp"
-                app:layout_constraintTop_toBottomOf="@id/tvStatusLabel"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toStartOf="@id/switchListener"
-                android:layout_marginEnd="16dp" />
+        </com.google.android.material.appbar.MaterialToolbar>
+    </com.google.android.material.appbar.AppBarLayout>
 
-            <com.google.android.material.materialswitch.MaterialSwitch
-                android:id="@+id/switchListener"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent" />
-
-        </androidx.constraintlayout.widget.ConstraintLayout>
-    </androidx.cardview.widget.CardView>
-
-    <!-- Permission Warning Card -->
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardPermissions"
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        app:cardCornerRadius="12dp"
-        app:cardElevation="2dp"
-        app:cardBackgroundColor="@color/card_bg"
-        android:layout_marginTop="12dp"
-        app:layout_constraintTop_toBottomOf="@id/cardStatus"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent">
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="16dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="16dp">
+
+            <!-- ========== 监听服务卡片 ========== -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardStatus"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/divider">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <!-- 标题行 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical">
+
+                        <ImageView
+                            android:layout_width="24dp"
+                            android:layout_height="24dp"
+                            android:src="@android:drawable/ic_lock_idle_alarm"
+                            app:tint="@color/primary"
+                            android:layout_marginEnd="10dp" />
+
+                        <LinearLayout
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/tvStatusLabel"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="短信监听服务"
+                                android:textSize="16sp"
+                                android:textStyle="bold"
+                                android:textColor="@color/text_main" />
+
+                            <TextView
+                                android:id="@+id/tvStatusDesc"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="开启后监听特别关注人短信"
+                                android:textSize="12sp"
+                                android:textColor="@color/text_muted"
+                                android:layout_marginTop="2dp" />
+
+                        </LinearLayout>
+
+                        <com.google.android.material.materialswitch.MaterialSwitch
+                            android:id="@+id/switchListener"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+
+                    <!-- 子开关容器 -->
+                    <LinearLayout
+                        android:id="@+id/layoutSubSwitches"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone"
+                        android:layout_marginTop="14dp"
+                        android:padding="12dp"
+                        android:background="@drawable/bg_sub_switch_container">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:src="@android:drawable/ic_popup_reminder"
+                                app:tint="@color/primary"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="即时广播提醒"
+                                android:textSize="14sp"
+                                android:textColor="@color/text_main" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="实时"
+                                android:textSize="10sp"
+                                android:textColor="@color/primary"
+                                android:background="@color/primary_container"
+                                android:paddingHorizontal="6dp"
+                                android:paddingVertical="1dp"
+                                android:layout_marginEnd="8dp" />
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switchBroadcast"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:scaleX="0.85"
+                                android:scaleY="0.85" />
+                        </LinearLayout>
+
+                        <View
+                            android:layout_width="match_parent"
+                            android:layout_height="1dp"
+                            android:background="@color/divider"
+                            android:layout_marginVertical="10dp" />
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+
+                            <ImageView
+                                android:layout_width="18dp"
+                                android:layout_height="18dp"
+                                android:src="@android:drawable/ic_menu_recent_history"
+                                app:tint="@color/primary"
+                                android:layout_marginEnd="8dp" />
+
+                            <TextView
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_weight="1"
+                                android:text="定时扫描补漏"
+                                android:textSize="14sp"
+                                android:textColor="@color/text_main" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="1~3分钟"
+                                android:textSize="10sp"
+                                android:textColor="@color/text_muted"
+                                android:background="@color/bg_surface_variant"
+                                android:paddingHorizontal="6dp"
+                                android:paddingVertical="1dp"
+                                android:layout_marginEnd="8dp" />
+
+                            <com.google.android.material.materialswitch.MaterialSwitch
+                                android:id="@+id/switchScan"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:scaleX="0.85"
+                                android:scaleY="0.85" />
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ========== 权限状态卡片 ========== -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardPermissions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="1dp"
+                app:strokeWidth="1dp"
+                app:strokeColor="@color/divider">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="18dp">
+
+                    <TextView
+                        android:id="@+id/tvPermissionTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="权限状态"
+                        android:textSize="15sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/text_main" />
+
+                    <!-- 短信权限 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="10dp">
+
+                        <ImageView
+                            android:id="@+id/ivSmsStatus"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/presence_online"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:id="@+id/tvPermissionSms"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="短信读取与接收权限"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_main" />
+
+                        <TextView
+                            android:id="@+id/chipSmsStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="已授权"
+                            android:textSize="11sp"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="2dp" />
+                    </LinearLayout>
+
+                    <!-- 通知权限 -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp">
+
+                        <ImageView
+                            android:id="@+id/ivNotifyStatus"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/presence_online"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:id="@+id/tvPermissionNotification"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="发送通知权限"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_main" />
+
+                        <TextView
+                            android:id="@+id/chipNotifyStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="已授权"
+                            android:textSize="11sp"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="2dp" />
+                    </LinearLayout>
+
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- ========== 联系人标题 + 操作 ========== -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="20dp"
+                android:layout_marginBottom="4dp">
+
+                <TextView
+                    android:id="@+id/tvContactsTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="特别关注名单"
+                    android:textSize="17sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_main" />
+
+                <TextView
+                    android:id="@+id/tvContactCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="0人"
+                    android:textSize="12sp"
+                    android:textColor="@color/text_muted"
+                    android:layout_marginEnd="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnAddContact"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="添加"
+                    app:icon="@android:drawable/ic_input_add"
+                    app:iconSize="18dp"
+                    android:textSize="13sp" />
+
+            </LinearLayout>
+
+            <!-- ========== 联系人列表 ========== -->
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rvContacts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"
+                tools:listitem="@layout/item_special_contact" />
 
             <TextView
-                android:id="@+id/tvPermissionTitle"
-                android:layout_width="wrap_content"
+                android:id="@+id/tvNoContacts"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="权限状态校验"
+                android:text="暂无特别关注联系人\n点击右上角「添加」按钮导入"
                 android:textSize="14sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_main" />
-
-            <TextView
-                android:id="@+id/tvPermissionSms"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="• 短信读取与接收权限：已授权"
-                android:textSize="12sp"
-                android:textColor="@color/green"
-                android:layout_marginTop="8dp" />
-
-            <TextView
-                android:id="@+id/tvPermissionNotification"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="• 发送通知权限：已授权"
-                android:textSize="12sp"
-                android:textColor="@color/green"
-                android:layout_marginTop="4dp" />
-
-            <Button
-                android:id="@+id/btnRequestPermissions"
-                style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="检测并跳转权限设置"
-                android:textColor="@color/primary"
-                android:layout_gravity="end"
-                android:layout_marginTop="8dp" />
+                android:textColor="@color/text_muted"
+                android:gravity="center"
+                android:paddingVertical="32dp"
+                android:lineSpacingExtra="4dp"
+                android:visibility="gone" />
 
         </LinearLayout>
-    </androidx.cardview.widget.CardView>
+    </androidx.core.widget.NestedScrollView>
 
-    <!-- Contacts Header -->
-    <TextView
-        android:id="@+id/tvContactsTitle"
+    <!-- 通讯录导入 FAB -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnImportContact"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="特别关注名单"
-        android:textSize="16sp"
-        android:textStyle="bold"
-        android:textColor="@color/text_main"
-        android:layout_marginTop="20dp"
-        app:layout_constraintTop_toBottomOf="@id/cardPermissions"
-        app:layout_constraintStart_toStartOf="parent" />
+        android:layout_gravity="bottom|end"
+        android:layout_margin="20dp"
+        android:contentDescription="从通讯录导入"
+        app:srcCompat="@android:drawable/ic_menu_myplaces"
+        app:tint="@color/text_on_primary"
+        app:backgroundTint="@color/primary"
+        app:fabSize="normal" />
 
-    <LinearLayout
-        android:id="@+id/layoutActionButtons"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        app:layout_constraintBaseline_toBaselineOf="@id/tvContactsTitle"
-        app:layout_constraintEnd_toEndOf="parent">
-
-        <Button
-            android:id="@+id/btnImportContact"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="通讯录导入"
-            android:textColor="@color/primary"
-            android:padding="0dp"
-            android:minWidth="0dp" />
-
-        <Button
-            android:id="@+id/btnAddContact"
-            style="@style/Widget.Material3.Button.TextButton"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="手动添加"
-            android:textColor="@color/primary"
-            android:layout_marginStart="16dp"
-            android:padding="0dp"
-            android:minWidth="0dp" />
-
-    </LinearLayout>
-
-    <!-- Contacts List -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvContacts"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:layout_marginTop="12dp"
-        app:layout_constraintTop_toBottomOf="@id/tvContactsTitle"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        tools:listitem="@layout/item_special_contact" />
-
-    <TextView
-        android:id="@+id/tvNoContacts"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="暂无特别关注联系人，请点击右上角添加"
-        android:textSize="14sp"
-        android:textColor="@color/text_muted"
-        app:layout_constraintTop_toTopOf="@id/rvContacts"
-        app:layout_constraintBottom_toBottomOf="@id/rvContacts"
-        app:layout_constraintStart_toStartOf="@id/rvContacts"
-        app:layout_constraintEnd_toEndOf="@id/rvContacts"
-        android:visibility="gone" />
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

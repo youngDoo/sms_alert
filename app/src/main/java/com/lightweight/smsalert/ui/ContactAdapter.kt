@@ -35,18 +35,19 @@ class ContactAdapter(
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(contact: SpecialContact) {
+            // 头像首字母
+            binding.tvAvatar.text = contact.name.firstOrNull()?.toString() ?: contact.phoneNumber.takeLast(1)
+
             binding.tvContactName.text = contact.name.ifEmpty { "未命名" }
             binding.tvContactPhone.text = contact.phoneNumber
 
-            val ringtoneText = when (contact.ringtoneUri) {
-                "alarm" -> "系统默认闹钟"
-                "ringtone" -> "系统默认电话铃"
-                "notification" -> "系统默认提示音"
+            val ringtoneLabel = when (contact.ringtoneUri) {
+                "alarm" -> "闹钟音"
+                "ringtone" -> "电话铃"
+                "notification" -> "提示音"
                 else -> "系统默认"
             }
-            binding.tvRingtoneDesc.text = "铃声：$ringtoneText"
-
-            val intervalText = when (contact.repeatIntervalSec) {
+            val intervalLabel = when (contact.repeatIntervalSec) {
                 30 -> "30秒"
                 60 -> "1分钟"
                 120 -> "2分钟"
@@ -54,7 +55,7 @@ class ContactAdapter(
                 300 -> "5分钟"
                 else -> "${contact.repeatIntervalSec}秒"
             }
-            binding.tvIntervalDesc.text = "重复间隔：$intervalText"
+            binding.tvRingtoneDesc.text = "$ringtoneLabel · $intervalLabel"
 
             binding.btnDelete.setOnClickListener {
                 onDeleteClick(contact)
