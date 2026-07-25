@@ -29,6 +29,10 @@ class SmsBackupJobService : JobService() {
                 cancel(context)
                 return
             }
+            if (!prefs.isScanEnabled) {
+                cancel(context)
+                return
+            }
 
             val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
             
