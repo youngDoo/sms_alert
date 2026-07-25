@@ -1,10 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- ===== 主体：圆角短信气泡（饱和度纯色填充 + 白色描边） ===== -->
     <path
-        android:fillColor="#FFFFFF"
-        android:pathData="M54,20c-11,0 -20,9 -20,20v22l-6,6v4h52v-4l-6,-6V40C74,29 65,20 54,20zM54,12c2.2,0 4,1.8 4,4h-8C50,13.8 51.8,12 54,12zM44,76c0,5.5 4.5,10 10,10s10,-4.5 10,-10H44z" />
+        android:pathData="
+          M38,36
+          L70,36
+          C76,36 80,40 80,46
+          L80,64
+          C80,70 76,74 70,74
+          L58,74
+          L48,84
+          L48,74
+          L38,74
+          C32,74 28,70 28,64
+          L28,46
+          C28,40 32,36 38,36 Z"
+        android:fillColor="#FF2563EB"
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3" />
+
+    <!-- 气泡内文字线条（白色，模拟短信内容） -->
+    <path
+        android:strokeColor="#FFFFFFFF"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M36,46 L62,46" />
+
+    <path
+        android:strokeColor="#FFBFDBFE"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M36,53 L56,53" />
+
+    <path
+        android:strokeColor="#FF93C5FD"
+        android:strokeWidth="3"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M36,60 L48,60" />
+
+    <!-- ===== 灵动箭头：从气泡右上角飞出 ===== -->
+    <!-- 箭杆弧线 -->
+    <path
+        android:strokeColor="#FF2563EB"
+        android:strokeWidth="3.5"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M72,40 Q76,34 82,30" />
+
+    <!-- 箭头尖部（菱形） -->
+    <path
+        android:fillColor="#FF3B82F6"
+        android:pathData="M82,24 L86,30 L82,34 L78,28 Z" />
+
+    <!-- 运动轨迹装饰弧线 -->
+    <path
+        android:strokeColor="#FF93C5FD"
+        android:strokeWidth="2"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M68,44 Q74,40 84,32" />
+
+    <!-- 箭头后方速度线 -->
+    <path
+        android:strokeColor="#FFBFDBFE"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M78,28 L82,25" />
+    <path
+        android:strokeColor="#FFBFDBFE"
+        android:strokeWidth="1.5"
+        android:strokeLineCap="round"
+        android:fillColor="@android:color/transparent"
+        android:pathData="M80,32 L84,28" />
+
 </vector>
