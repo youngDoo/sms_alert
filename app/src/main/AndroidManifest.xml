@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 仅允许申请以下3个系统权限，多一个权限都不要添加 -->
+    <!-- 仅允许申请以下 3 个系统权限，多一个权限都不要添加 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- 修复：添加 WAKE_LOCK 权限（SmsReceiver/RingtoneService 均使用 WakeLock） -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name=".SmsAlertApplication"
@@ -32,7 +34,6 @@
             android:excludeFromRecents="true"
             android:exported="false"
             android:launchMode="singleInstance"
-            android:showOnLockScreen="true"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:theme="@style/Theme.SmsAlertTool.AlertActivity" />

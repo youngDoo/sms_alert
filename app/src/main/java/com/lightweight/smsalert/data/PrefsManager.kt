@@ -10,6 +10,8 @@ class PrefsManager(context: Context) {
 
     companion object {
         private const val KEY_LISTENER_ENABLED = "listener_enabled"
+        private const val KEY_BROADCAST_ENABLED = "broadcast_enabled"
+        private const val KEY_SCAN_ENABLED = "scan_enabled"
         private const val KEY_CONTACTS = "special_contacts"
         private const val KEY_SMS_CACHE = "processed_sms_cache"
         private const val MAX_CACHE_SIZE = 10
@@ -18,6 +20,14 @@ class PrefsManager(context: Context) {
     var isListenerEnabled: Boolean
         get() = prefs.getBoolean(KEY_LISTENER_ENABLED, false)
         set(value) = prefs.edit().putBoolean(KEY_LISTENER_ENABLED, value).apply()
+
+    var isBroadcastEnabled: Boolean
+        get() = prefs.getBoolean(KEY_BROADCAST_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_BROADCAST_ENABLED, value).apply()
+
+    var isScanEnabled: Boolean
+        get() = prefs.getBoolean(KEY_SCAN_ENABLED, true)
+        set(value) = prefs.edit().putBoolean(KEY_SCAN_ENABLED, value).apply()
 
     fun getContacts(): List<SpecialContact> {
         val jsonStr = prefs.getString(KEY_CONTACTS, null) ?: return emptyList()
@@ -104,17 +114,9 @@ class PrefsManager(context: Context) {
         prefs.edit().putString(KEY_SMS_CACHE, jsonArray.toString()).apply()
     }
 
-    private fun normalizePhone(phone: String): String {
-        var clean = phone.replace("\\s".toRegex(), "").replace("-", "")
-        if (clean.startsWith("+86")) {
-            clean = clean.substring(3)
-        } else if (clean.startsWith("86")) {
-            clean = clean.substring(2)
-        }
-        return clean
-    }
+    internal fun normalizePhone(phone: String): String = PhoneUtils.normalize(phone)
 
-    private fun isSamePhoneNumber(p1: String, p2: String): Boolean {
+    internal fun isSamePhoneNumber(p1: String, p2: String): Boolean {
         val n1 = normalizePhone(p1)
         val n2 = normalizePhone(p2)
         return n1 == n2 || n1.endsWith(n2) || n2.endsWith(n1)

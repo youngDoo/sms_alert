@@ -1,14 +1,40 @@
 <resources>
+    <!-- ========== 色彩系统 ========== -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="primary">#FF0F62FE</color>
-    <color name="primary_dark">#FF0043CE</color>
-    <color name="accent">#FFD0E2FF</color>
-    <color name="bg_light">#FFF4F4F4</color>
-    <color name="card_bg">#FFFFFFFF</color>
-    <color name="text_main">#FF161616</color>
-    <color name="text_muted">#FF525252</color>
-    <color name="red">#FFDA1E28</color>
-    <color name="green">#FF198038</color>
+
+    <!-- 品牌蓝色系 -->
+    <color name="primary">#FF2563EB</color>
+    <color name="primary_dark">#FF1D4ED8</color>
+    <color name="primary_light">#FFDBEAFE</color>
+    <color name="primary_container">#FFEFF6FF</color>
+
+    <!-- 语义色 -->
+    <color name="success">#FF16A34A</color>
+    <color name="success_bg">#FFDCFCE7</color>
+    <color name="warning">#FFF59E0B</color>
+    <color name="warning_bg">#FFFEF3C7</color>
+    <color name="error">#FFDC2626</color>
+    <color name="error_bg">#FFFEE2E2</color>
+
+    <!-- 背景与表面 -->
+    <color name="bg_light">#FFF8FAFC</color>
+    <color name="bg_surface">#FFFFFFFF</color>
+    <color name="bg_surface_variant">#FFF1F5F9</color>
+
+    <!-- 文字 -->
+    <color name="text_main">#FF0F172A</color>
+    <color name="text_secondary">#FF475569</color>
+    <color name="text_muted">#FF94A3B8</color>
+    <color name="text_on_primary">#FFFFFFFF</color>
+
+    <!-- 分割线 / 边框 -->
+    <color name="divider">#FFE2E8F0</color>
+
+    <!-- 保留旧名称兼容 -->
+    <color name="card_bg">@color/bg_surface</color>
+    <color name="accent">@color/primary_light</color>
+    <color name="red">@color/error</color>
+    <color name="green">@color/success</color>
     <color name="transparent">#00000000</color>
 </resources>

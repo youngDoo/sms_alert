@@ -3,7 +3,6 @@ package com.lightweight.smsalert.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -20,6 +19,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.lightweight.smsalert.R
 import com.lightweight.smsalert.data.PrefsManager
 import com.lightweight.smsalert.databinding.ActivityMainBinding
 import com.lightweight.smsalert.databinding.DialogContactEditBinding
@@ -32,7 +32,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefsManager: PrefsManager
-    private lateinit var contactAdapter: ContactAdapter
 
     private val contactPickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -47,6 +46,9 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Edge-to-Edge：内容延伸到系统栏区域（挖孔屏/刘海屏适配）
+        setSupportActionBar(binding.toolbar)
 
         prefsManager = PrefsManager(this)
 
@@ -69,14 +71,21 @@ class MainActivity : AppCompatActivity() {
         binding.rvContacts.adapter = contactAdapter
     }
 
+    private lateinit var contactAdapter: ContactAdapter
+
     private fun setupUI() {
+        // 主开关
         binding.switchListener.isChecked = prefsManager.isListenerEnabled
+        binding.switchBroadcast.isChecked = prefsManager.isBroadcastEnabled
+        binding.switchScan.isChecked = prefsManager.isScanEnabled
+        binding.layoutSubSwitches.visibility = if (prefsManager.isListenerEnabled) View.VISIBLE else View.GONE
+
         binding.switchListener.setOnCheckedChangeListener { _, isChecked ->
             if (isChecked) {
                 if (hasSmsPermissions()) {
                     prefsManager.isListenerEnabled = true
-                    SmsReceiver.registerDynamic(this)
-                    SmsBackupJobService.schedule(this, immediate = true)
+                    binding.layoutSubSwitches.visibility = View.VISIBLE
+                    applySubSwitchStates()
                     Toast.makeText(this, "短信监听服务已启用", Toast.LENGTH_SHORT).show()
                 } else {
                     binding.switchListener.isChecked = false
@@ -85,20 +94,37 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 prefsManager.isListenerEnabled = false
+                binding.layoutSubSwitches.visibility = View.GONE
                 SmsReceiver.unregisterDynamic(this)
                 SmsBackupJobService.cancel(this)
                 Toast.makeText(this, "短信监听服务已关闭", Toast.LENGTH_SHORT).show()
             }
         }
 
-        binding.btnRequestPermissions.setOnClickListener {
-            jumpToSettings()
+        // 子开关：即时广播
+        binding.switchBroadcast.setOnCheckedChangeListener { _, isChecked ->
+            prefsManager.isBroadcastEnabled = isChecked
+            if (prefsManager.isListenerEnabled) {
+                if (isChecked) SmsReceiver.registerDynamic(this)
+                else SmsReceiver.unregisterDynamic(this)
+            }
         }
 
+        // 子开关：定时扫描
+        binding.switchScan.setOnCheckedChangeListener { _, isChecked ->
+            prefsManager.isScanEnabled = isChecked
+            if (prefsManager.isListenerEnabled) {
+                if (isChecked) SmsBackupJobService.schedule(this, immediate = true)
+                else SmsBackupJobService.cancel(this)
+            }
+        }
+
+        // 手动添加按钮
         binding.btnAddContact.setOnClickListener {
             showAddEditContactDialog(null, null)
         }
 
+        // 通讯录导入 FAB
         binding.btnImportContact.setOnClickListener {
             try {
                 val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
@@ -107,12 +133,25 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "无法打开通讯录，请检查权限", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // 权限卡片点击 → 去设置
+        binding.cardPermissions.setOnClickListener {
+            if (!hasSmsPermissions() || !hasNotificationPermission()) {
+                jumpToSettings()
+            }
+        }
+    }
+
+    private fun applySubSwitchStates() {
+        if (prefsManager.isBroadcastEnabled) SmsReceiver.registerDynamic(this)
+        else SmsReceiver.unregisterDynamic(this)
+        if (prefsManager.isScanEnabled) SmsBackupJobService.schedule(this, immediate = true)
+        else SmsBackupJobService.cancel(this)
     }
 
     private fun checkAndRequestFirstLaunchPermissions() {
         val sp = getSharedPreferences("sms_alert_app", MODE_PRIVATE)
         val isFirstLaunch = sp.getBoolean("is_first_launch", true)
-        
         if (isFirstLaunch) {
             sp.edit().putBoolean("is_first_launch", false).apply()
             if (!hasSmsPermissions() || !hasNotificationPermission()) {
@@ -123,39 +162,51 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun hasSmsPermissions(): Boolean {
-        val hasReceive = ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
-        val hasRead = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
-        return hasReceive && hasRead
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun hasNotificationPermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
-        } else {
-            true
-        }
+        } else true
     }
 
     private fun updatePermissionStatus() {
+        // 短信权限
         if (hasSmsPermissions()) {
-            binding.tvPermissionSms.text = "• 短信读取与接收权限：已授权"
-            binding.tvPermissionSms.setTextColor(ContextCompat.getColor(this, com.lightweight.smsalert.R.color.green))
+            binding.ivSmsStatus.setImageResource(android.R.drawable.presence_online)
+            binding.ivSmsStatus.setColorFilter(ContextCompat.getColor(this, R.color.success))
+            binding.chipSmsStatus.text = "已授权"
+            binding.chipSmsStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
+            binding.chipSmsStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
         } else {
-            binding.tvPermissionSms.text = "• 短信读取与接收权限：未授权 (必填)"
-            binding.tvPermissionSms.setTextColor(ContextCompat.getColor(this, com.lightweight.smsalert.R.color.red))
+            binding.ivSmsStatus.setImageResource(android.R.drawable.presence_offline)
+            binding.ivSmsStatus.setColorFilter(ContextCompat.getColor(this, R.color.error))
+            binding.chipSmsStatus.text = "未授权"
+            binding.chipSmsStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
+            binding.chipSmsStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
         }
 
+        // 通知权限
         if (hasNotificationPermission()) {
-            binding.tvPermissionNotification.text = "• 发送通知权限：已授权"
-            binding.tvPermissionNotification.setTextColor(ContextCompat.getColor(this, com.lightweight.smsalert.R.color.green))
+            binding.ivNotifyStatus.setImageResource(android.R.drawable.presence_online)
+            binding.ivNotifyStatus.setColorFilter(ContextCompat.getColor(this, R.color.success))
+            binding.chipNotifyStatus.text = "已授权"
+            binding.chipNotifyStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
+            binding.chipNotifyStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
         } else {
-            binding.tvPermissionNotification.text = "• 发送通知权限：未授权 (影响提醒)"
-            binding.tvPermissionNotification.setTextColor(ContextCompat.getColor(this, com.lightweight.smsalert.R.color.red))
+            binding.ivNotifyStatus.setImageResource(android.R.drawable.presence_offline)
+            binding.ivNotifyStatus.setColorFilter(ContextCompat.getColor(this, R.color.error))
+            binding.chipNotifyStatus.text = "未授权"
+            binding.chipNotifyStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
+            binding.chipNotifyStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
         }
     }
 
     private fun refreshContactList() {
         val contacts = prefsManager.getContacts()
+        binding.tvContactCount.text = "${contacts.size}人"
         if (contacts.isEmpty()) {
             binding.tvNoContacts.visibility = View.VISIBLE
             binding.rvContacts.visibility = View.GONE
@@ -190,7 +241,6 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAddEditContactDialog(prefilledName: String?, prefilledPhone: String?) {
         val dialogBinding = DialogContactEditBinding.inflate(layoutInflater)
-        
         prefilledName?.let { dialogBinding.etName.setText(it) }
         prefilledPhone?.let { dialogBinding.etPhone.setText(it) }
 
@@ -209,19 +259,16 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("保存") { dialog, _ ->
                 val name = dialogBinding.etName.text.toString().trim()
                 val phone = dialogBinding.etPhone.text.toString().trim()
-
                 if (phone.isEmpty()) {
                     Toast.makeText(this, "手机号码不能为空", Toast.LENGTH_SHORT).show()
                     return@setPositiveButton
                 }
-
                 val ringtoneValue = when (dialogBinding.spinnerRingtone.selectedItemPosition) {
                     0 -> "alarm"
                     1 -> "ringtone"
                     2 -> "notification"
                     else -> "alarm"
                 }
-
                 val intervalValue = when (dialogBinding.spinnerInterval.selectedItemPosition) {
                     0 -> 30
                     1 -> 60
@@ -230,7 +277,6 @@ class MainActivity : AppCompatActivity() {
                     4 -> 300
                     else -> 30
                 }
-
                 val newContact = SpecialContact(
                     id = UUID.randomUUID().toString(),
                     name = name,
@@ -238,7 +284,6 @@ class MainActivity : AppCompatActivity() {
                     ringtoneUri = ringtoneValue,
                     repeatIntervalSec = intervalValue
                 )
-
                 prefsManager.addContact(newContact)
                 refreshContactList()
                 dialog.dismiss()
@@ -250,7 +295,7 @@ class MainActivity : AppCompatActivity() {
     private fun showDeleteConfirmation(contact: SpecialContact) {
         AlertDialog.Builder(this)
             .setTitle("删除特别关注")
-            .setMessage("确定要删除对“${contact.name.ifEmpty { contact.phoneNumber }}”的特别关注提醒吗？")
+            .setMessage("确定要删除对「${contact.name.ifEmpty { contact.phoneNumber }}」的特别关注提醒吗？")
             .setPositiveButton("删除") { dialog, _ ->
                 prefsManager.removeContact(contact.id)
                 refreshContactList()

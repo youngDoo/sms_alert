@@ -28,6 +28,7 @@ class SmsReceiver : BroadcastReceiver() {
         fun registerDynamic(context: Context) {
             val prefs = PrefsManager(context)
             if (!prefs.isListenerEnabled) return
+            if (!prefs.isBroadcastEnabled) return
 
             if (dynamicReceiver == null) {
                 dynamicReceiver = SmsReceiver()

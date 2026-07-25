@@ -29,6 +29,12 @@ android {
         targetCompatibility JavaVersion.VERSION_17
     }
 
+    testOptions {
+        unitTests {
+            includeAndroidResources = false
+        }
+    }
+
     buildFeatures {
         viewBinding true
     }
@@ -40,4 +46,12 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+    // Unit test (纯 JVM，无 Robolectric)
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.json:json:20231013'
+
+    // Instrumented test
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test:runner:1.5.2'
 }

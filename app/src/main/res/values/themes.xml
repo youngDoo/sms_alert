@@ -1,14 +1,29 @@
 <resources>
-    <!-- Base application theme. -->
-    <style name="Theme.SmsAlertTool" parent="Theme.AppCompat.Light.NoActionBar">
+    <!-- ========== 主主题：Material3 + 挖孔屏适配 + Edge-to-Edge ========== -->
+    <style name="Theme.SmsAlertTool" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Material3 动态取色基础 -->
         <item name="colorPrimary">@color/primary</item>
-        <item name="colorPrimaryDark">@color/primary_dark</item>
-        <item name="colorAccent">@color/accent</item>
+        <item name="colorOnPrimary">@color/text_on_primary</item>
+        <item name="colorPrimaryContainer">@color/primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/primary_dark</item>
+        <item name="colorSurface">@color/bg_surface</item>
+        <item name="colorOnSurface">@color/text_main</item>
+        <item name="colorSurfaceVariant">@color/bg_surface_variant</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
         <item name="android:windowBackground">@color/bg_light</item>
+
+        <!-- Edge-to-Edge：透明状态栏/导航栏，内容延伸到系统栏区域 -->
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+
+        <!-- 挖孔屏/刘海屏适配：允许内容延伸到挖孔区域 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
-    <!-- Theme for AlertActivity: floating layout, transparent background, overlay on lockscreen -->
-    <style name="Theme.SmsAlertTool.AlertActivity" parent="Theme.AppCompat.Light.Dialog">
+    <!-- ========== AlertActivity 悬浮弹窗主题（锁屏+亮屏强提醒） ========== -->
+    <style name="Theme.SmsAlertTool.AlertActivity" parent="Theme.Material3.Light.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowIsTranslucent">true</item>
@@ -17,5 +32,7 @@
         <item name="android:windowCloseOnTouchOutside">false</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:backgroundDimAmount">0.6</item>
+        <!-- 弹窗也适配挖孔 -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>
