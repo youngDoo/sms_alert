@@ -14,6 +14,9 @@ import android.provider.Settings
 import android.util.Log
 import android.view.View
 import android.widget.ArrayAdapter
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -23,6 +26,7 @@ import com.lightweight.smsalert.R
 import com.lightweight.smsalert.data.PrefsManager
 import com.lightweight.smsalert.databinding.ActivityMainBinding
 import com.lightweight.smsalert.databinding.DialogContactEditBinding
+import com.lightweight.smsalert.model.ContentRule
 import com.lightweight.smsalert.model.SpecialContact
 import com.lightweight.smsalert.receiver.SmsReceiver
 import com.lightweight.smsalert.service.SmsBackupJobService
@@ -61,6 +65,7 @@ class MainActivity : AppCompatActivity() {
         super.onResume()
         updatePermissionStatus()
         refreshContactList()
+        refreshContentRules()
     }
 
     private fun setupRecyclerView() {
@@ -360,8 +365,164 @@ class MainActivity : AppCompatActivity() {
             startActivity(intent)
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to open battery settings: ${e.message}")
-            // fallback to general settings
             jumpToSettings()
         }
     }
+
+    // ─── 内容规则 ──────────────────────────────────────────────────
+
+    private var contentRulesContainer: LinearLayout? = null
+
+    private fun refreshContentRules() {
+        val rules = prefsManager.getContentRules()
+        contentRulesContainer?.removeAllViews()
+
+        val parent = binding.rvContacts.parent as? LinearLayout ?: return
+        contentRulesContainer?.let { parent.removeView(it) }
+
+        // 始终显示标题+添加按钮（即使规则为空）
+        // 容器
+        val container = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 16.dp() }
+            setPadding(0, 8.dp(), 0, 0)
+        }
+
+        // 标题行
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+        }
+        val title = TextView(this).apply {
+            text = "内容规则"
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_main))
+            textSize = 17f
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+        }
+        val count = TextView(this).apply {
+            text = "${rules.size}条"
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
+            textSize = 12f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { marginEnd = 12.dp() }
+        }
+        val addBtn = com.google.android.material.button.MaterialButton(this).apply {
+            text = "添加"
+            textSize = 13f
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, 40.dp()
+            )
+            setIconResource(android.R.drawable.ic_input_add)
+            iconSize = 18.dp()
+            setOnClickListener { showAddContentRuleDialog() }
+        }
+        header.addView(title)
+        header.addView(count)
+        header.addView(addBtn)
+        container.addView(header)
+
+        // 规则列表
+        for (rule in rules) {
+            val item = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = android.view.Gravity.CENTER_VERTICAL
+                setPadding(12.dp(), 10.dp(), 8.dp(), 10.dp())
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                ).apply { topMargin = 6.dp() }
+                setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.bg_surface_variant))
+            }
+            val info = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            val nameTv = TextView(this).apply {
+                text = rule.name; textSize = 14f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_main))
+            }
+            val patternTv = TextView(this).apply {
+                text = rule.pattern; textSize = 11f
+                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
+            }
+            info.addView(nameTv); info.addView(patternTv)
+
+            val deleteBtn = com.google.android.material.button.MaterialButton(this).apply {
+                setIconResource(android.R.drawable.ic_delete)
+                iconSize = 16.dp()
+                layoutParams = LinearLayout.LayoutParams(36.dp(), 36.dp())
+                setOnClickListener {
+                    prefsManager.removeContentRule(rule.id)
+                    refreshContentRules()
+                }
+            }
+            item.addView(info); item.addView(deleteBtn)
+            container.addView(item)
+        }
+
+        parent.addView(container)
+        contentRulesContainer = container
+    }
+
+    private fun showAddContentRuleDialog() {
+        val dialogLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(48.dp(), 24.dp(), 48.dp(), 8.dp())
+        }
+
+        val etName = EditText(this).apply {
+            hint = "规则名称（如：验证码）"
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
+        }
+        val etPattern = EditText(this).apply {
+            hint = "正则表达式（如：验证码.*\\d{4,6}）"
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
+        }
+        val spinnerRingtone = android.widget.Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_item,
+                arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音"))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
+        }
+        val spinnerInterval = android.widget.Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_item,
+                arrayOf("30秒", "1分钟", "2分钟", "3分钟", "5分钟"))
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
+        }
+
+        dialogLayout.addView(etName)
+        dialogLayout.addView(etPattern)
+        dialogLayout.addView(spinnerRingtone)
+        dialogLayout.addView(spinnerInterval)
+
+        AlertDialog.Builder(this)
+            .setTitle("添加内容规则")
+            .setView(dialogLayout)
+            .setPositiveButton("保存") { dialog, _ ->
+                val name = etName.text.toString().trim()
+                val pattern = etPattern.text.toString().trim()
+                if (name.isEmpty() || pattern.isEmpty()) {
+                    Toast.makeText(this, "名称和正则表达式不能为空", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val ringtone = when (spinnerRingtone.selectedItemPosition) {
+                    0 -> "alarm"; 1 -> "ringtone"; 2 -> "notification"; else -> "alarm"
+                }
+                val interval = when (spinnerInterval.selectedItemPosition) {
+                    0 -> 30; 1 -> 60; 2 -> 120; 3 -> 180; 4 -> 300; else -> 30
+                }
+                prefsManager.addContentRule(ContentRule(
+                    id = UUID.randomUUID().toString(), name = name, pattern = pattern,
+                    ringtoneUri = ringtone, repeatIntervalSec = interval
+                ))
+                refreshContentRules()
+                dialog.dismiss()
+            }
+            .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
 }

@@ -61,10 +61,17 @@ class SmsReceiver : BroadcastReceiver() {
 
             val contact = prefs.findMatchingContact(sender)
             if (contact != null) {
-                Log.w(TAG, "[DIAG] processIncomingSms MATCHED: name=${contact.name}, phone=${contact.phoneNumber}, ringtoneUri=${contact.ringtoneUri}, interval=${contact.repeatIntervalSec}")
+                Log.w(TAG, "[DIAG] processIncomingSms MATCHED contact: name=${contact.name}, phone=${contact.phoneNumber}")
                 RingtoneService.startRinging(context, contact.name, contact.phoneNumber, body, contact.ringtoneUri, contact.repeatIntervalSec)
             } else {
-                Log.w(TAG, "[DIAG] processIncomingSms NO MATCH: sender=$sender not in contacts list")
+                // 号码未匹配 → 尝试内容正则
+                val contentRule = prefs.findMatchingContentRule(body)
+                if (contentRule != null) {
+                    Log.w(TAG, "[DIAG] processIncomingSms MATCHED contentRule: name=${contentRule.name}, pattern=${contentRule.pattern}")
+                    RingtoneService.startRinging(context, contentRule.name, sender, body, contentRule.ringtoneUri, contentRule.repeatIntervalSec)
+                } else {
+                    Log.w(TAG, "[DIAG] processIncomingSms NO MATCH: sender=$sender")
+                }
             }
         }
 

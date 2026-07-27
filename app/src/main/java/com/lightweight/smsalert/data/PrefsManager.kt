@@ -2,6 +2,7 @@ package com.lightweight.smsalert.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.lightweight.smsalert.model.ContentRule
 import com.lightweight.smsalert.model.SpecialContact
 import org.json.JSONArray
 
@@ -13,6 +14,7 @@ class PrefsManager(context: Context) {
         private const val KEY_BROADCAST_ENABLED = "broadcast_enabled"
         private const val KEY_SCAN_ENABLED = "scan_enabled"
         private const val KEY_CONTACTS = "special_contacts"
+        private const val KEY_CONTENT_RULES = "content_rules"
         private const val KEY_SMS_CACHE = "processed_sms_cache"
         private const val MAX_CACHE_SIZE = 10
     }
@@ -73,6 +75,54 @@ class PrefsManager(context: Context) {
         val contacts = getContacts()
         return contacts.firstOrNull { isSamePhoneNumber(it.phoneNumber, incomingNumber) }
     }
+
+    // ─── 内容规则 ──────────────────────────────────────────────────
+
+    fun getContentRules(): List<ContentRule> {
+        val jsonStr = prefs.getString(KEY_CONTENT_RULES, null) ?: return emptyList()
+        val list = mutableListOf<ContentRule>()
+        try {
+            val jsonArray = JSONArray(jsonStr)
+            for (i in 0 until jsonArray.length()) {
+                list.add(ContentRule.fromJson(jsonArray.getString(i)))
+            }
+        } catch (e: Exception) { e.printStackTrace() }
+        return list
+    }
+
+    private fun saveContentRules(rules: List<ContentRule>) {
+        val jsonArray = JSONArray()
+        for (rule in rules) jsonArray.put(rule.toJsonObject().toString())
+        prefs.edit().putString(KEY_CONTENT_RULES, jsonArray.toString()).apply()
+    }
+
+    fun addContentRule(rule: ContentRule) {
+        val rules = getContentRules().toMutableList()
+        // 同名规则覆盖
+        rules.removeAll { it.name == rule.name }
+        rules.add(rule)
+        saveContentRules(rules)
+    }
+
+    fun removeContentRule(ruleId: String) {
+        val rules = getContentRules().toMutableList()
+        rules.removeAll { it.id == ruleId }
+        saveContentRules(rules)
+    }
+
+    /** 返回第一个匹配短信正文的正则规则，未匹配返回 null */
+    fun findMatchingContentRule(smsBody: String?): ContentRule? {
+        if (smsBody.isNullOrEmpty()) return null
+        return getContentRules().firstOrNull { rule ->
+            try {
+                Regex(rule.pattern).containsMatchIn(smsBody)
+            } catch (e: Exception) {
+                false // 无效正则跳过
+            }
+        }
+    }
+
+    // ─── 去重 ─────────────────────────────────────────────────────
 
     @Synchronized
     fun isDuplicateSms(smsId: String, sender: String, timestampMs: Long): Boolean {
