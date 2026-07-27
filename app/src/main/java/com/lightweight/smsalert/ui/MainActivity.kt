@@ -29,13 +29,19 @@ import com.lightweight.smsalert.databinding.DialogContactEditBinding
 import com.lightweight.smsalert.model.ContentRule
 import com.lightweight.smsalert.model.SpecialContact
 import com.lightweight.smsalert.receiver.SmsReceiver
+import com.lightweight.smsalert.service.RingtoneService
 import com.lightweight.smsalert.service.SmsBackupJobService
 import java.util.UUID
 
 class MainActivity : AppCompatActivity() {
 
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefsManager: PrefsManager
+    private var lastResumeAlertMs = 0L  // 防抖：onResume 恢复弹窗的最小间隔
 
     private val contactPickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -66,6 +72,16 @@ class MainActivity : AppCompatActivity() {
         updatePermissionStatus()
         refreshContactList()
         refreshContentRules()
+        // 恢复机制：从桌面图标进入时若正在响铃，弹出 AlertActivity（3 秒防抖防死循环）
+        if (RingtoneService.isRinging() && System.currentTimeMillis() - lastResumeAlertMs > 3000) {
+            lastResumeAlertMs = System.currentTimeMillis()
+            startActivity(Intent(this, AlertActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("sender_name", RingtoneService.getLastSenderName())
+                putExtra("sender_phone", RingtoneService.getLastSenderPhone())
+                putExtra("sms_body", RingtoneService.getLastSmsBody())
+            })
+        }
     }
 
     private fun setupRecyclerView() {
@@ -139,18 +155,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 权限卡片点击 → 去设置
+        // 权限卡片整体点击 → 去设置（始终可点击，已授权也能进去查看）
         binding.cardPermissions.setOnClickListener {
-            if (!hasSmsPermissions() || !hasNotificationPermission()) {
-                jumpToSettings()
-            }
+            jumpToSettings()
         }
 
-        // 电池优化行点击 → 跳转后台高耗电设置
+        // 电池优化行点击 → 跳转后台高耗电设置（始终可点击）
         binding.layoutBatteryOpt.setOnClickListener {
-            if (!isIgnoringBatteryOptimizations()) {
-                jumpToBatterySettings()
-            }
+            jumpToBatterySettings()
+        }
+
+        // 后台弹出界面行点击 → 跳转系统设置（Vivo 专属）
+        binding.layoutBgPopup.setOnClickListener {
+            jumpToSettings()
         }
     }
 
@@ -189,6 +206,12 @@ class MainActivity : AppCompatActivity() {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             pm.isIgnoringBatteryOptimizations(packageName)
         } else true
+    }
+
+    /** Vivo/BBK 设备检测：这些设备需要在设置中额外开启「后台弹出界面」权限 */
+    private fun isVivoOrBbk(): Boolean {
+        val mfr = Build.MANUFACTURER.lowercase()
+        return mfr == "vivo" || mfr == "bbk"
     }
 
     private fun updatePermissionStatus() {
@@ -236,6 +259,13 @@ class MainActivity : AppCompatActivity() {
             binding.chipBatteryStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
             binding.chipBatteryStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
         }
+
+        // 后台弹出界面（Vivo/BBK 专属，无法用 API 检测 → 仅显示引导入口，不显示假状态）
+        if (isVivoOrBbk()) {
+            binding.layoutBgPopup.visibility = View.VISIBLE
+        } else {
+            binding.layoutBgPopup.visibility = View.GONE
+        }
     }
 
     private fun refreshContactList() {
@@ -266,7 +296,7 @@ class MainActivity : AppCompatActivity() {
                 showAddEditContactDialog(name, phone)
             }
         } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to parse contact: ${e.message}")
+            Log.e(TAG, "Failed to parse contact: ${e.message}")
             Toast.makeText(this, "解析联系人失败", Toast.LENGTH_SHORT).show()
         } finally {
             cursor?.close()
@@ -283,11 +313,6 @@ class MainActivity : AppCompatActivity() {
         ringtoneAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         dialogBinding.spinnerRingtone.adapter = ringtoneAdapter
 
-        val intervalOptions = arrayOf("30秒", "1分钟", "2分钟", "3分钟", "5分钟")
-        val intervalAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, intervalOptions)
-        intervalAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        dialogBinding.spinnerInterval.adapter = intervalAdapter
-
         AlertDialog.Builder(this)
             .setView(dialogBinding.root)
             .setPositiveButton("保存") { dialog, _ ->
@@ -303,20 +328,12 @@ class MainActivity : AppCompatActivity() {
                     2 -> "notification"
                     else -> "alarm"
                 }
-                val intervalValue = when (dialogBinding.spinnerInterval.selectedItemPosition) {
-                    0 -> 30
-                    1 -> 60
-                    2 -> 120
-                    3 -> 180
-                    4 -> 300
-                    else -> 30
-                }
                 val newContact = SpecialContact(
                     id = UUID.randomUUID().toString(),
                     name = name,
                     phoneNumber = phone,
                     ringtoneUri = ringtoneValue,
-                    repeatIntervalSec = intervalValue
+                    repeatIntervalSec = 30  // 保留字段向后兼容，当前行为：响铃无限循环直到手动停止
                 )
                 prefsManager.addContact(newContact)
                 refreshContactList()
@@ -346,7 +363,7 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to open settings: ${e.message}")
+            Log.e(TAG, "Failed to open settings: ${e.message}")
             Toast.makeText(this, "跳转设置页面失败，请手动到系统设置中开启权限", Toast.LENGTH_SHORT).show()
         }
     }
@@ -364,7 +381,7 @@ class MainActivity : AppCompatActivity() {
             }
             startActivity(intent)
         } catch (e: Exception) {
-            Log.e("MainActivity", "Failed to open battery settings: ${e.message}")
+            Log.e(TAG, "Failed to open battery settings: ${e.message}")
             jumpToSettings()
         }
     }
@@ -486,16 +503,19 @@ class MainActivity : AppCompatActivity() {
                 arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音"))
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
         }
-        val spinnerInterval = android.widget.Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_item,
-                arrayOf("30秒", "1分钟", "2分钟", "3分钟", "5分钟"))
+
+        val noteText = TextView(this).apply {
+            text = "响铃将持续到手动点击「我已知晓」停止"
+            textSize = 11f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
             layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
+            gravity = android.view.Gravity.CENTER
         }
 
         dialogLayout.addView(etName)
         dialogLayout.addView(etPattern)
         dialogLayout.addView(spinnerRingtone)
-        dialogLayout.addView(spinnerInterval)
+        dialogLayout.addView(noteText)
 
         AlertDialog.Builder(this)
             .setTitle("添加内容规则")
@@ -510,12 +530,9 @@ class MainActivity : AppCompatActivity() {
                 val ringtone = when (spinnerRingtone.selectedItemPosition) {
                     0 -> "alarm"; 1 -> "ringtone"; 2 -> "notification"; else -> "alarm"
                 }
-                val interval = when (spinnerInterval.selectedItemPosition) {
-                    0 -> 30; 1 -> 60; 2 -> 120; 3 -> 180; 4 -> 300; else -> 30
-                }
                 prefsManager.addContentRule(ContentRule(
                     id = UUID.randomUUID().toString(), name = name, pattern = pattern,
-                    ringtoneUri = ringtone, repeatIntervalSec = interval
+                    ringtoneUri = ringtone, repeatIntervalSec = 30  // 保留字段向后兼容
                 ))
                 refreshContentRules()
                 dialog.dismiss()

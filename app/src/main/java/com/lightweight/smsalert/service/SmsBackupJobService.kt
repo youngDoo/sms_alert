@@ -21,46 +21,34 @@ class SmsBackupJobService : JobService() {
 
     companion object {
         private const val TAG = "SmsBackupJobService"
-        private const val JOB_ID = 2001
+        private const val JOB_ID = 2002
 
         fun schedule(context: Context, immediate: Boolean = false) {
             val prefs = PrefsManager(context)
-            if (!prefs.isListenerEnabled) {
-                cancel(context)
-                return
-            }
-            if (!prefs.isScanEnabled) {
+            if (!prefs.isListenerEnabled || !prefs.isScanEnabled) {
                 cancel(context)
                 return
             }
 
             val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
-            
-            val delayMs = if (immediate) {
-                0L
-            } else {
-                getIntervalMs(context)
-            }
+            val delayMs = if (immediate) 0L else getIntervalMs(context)
 
             val component = ComponentName(context, SmsBackupJobService::class.java)
             val builder = JobInfo.Builder(JOB_ID, component)
                 .setMinimumLatency(delayMs)
-                .setOverrideDeadline(delayMs + 10000)
                 .setRequiresDeviceIdle(false)
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)
 
             try {
                 jobScheduler.schedule(builder.build())
-                Log.d(TAG, "SmsBackupJobService scheduled with delay: ${delayMs / 1000}s")
             } catch (e: Exception) {
-                Log.e(TAG, "Error scheduling job: ${e.message}")
+                Log.e(TAG, "Failed to schedule: ${e.message}")
             }
         }
 
         fun cancel(context: Context) {
             val jobScheduler = context.getSystemService(Context.JOB_SCHEDULER_SERVICE) as JobScheduler
             jobScheduler.cancel(JOB_ID)
-            Log.d(TAG, "SmsBackupJobService cancelled.")
         }
 
         private fun getIntervalMs(context: Context): Long {
@@ -76,40 +64,32 @@ class SmsBackupJobService : JobService() {
             val status = intent?.getIntExtra(BatteryManager.EXTRA_STATUS, -1) ?: -1
             val isCharging = status == BatteryManager.BATTERY_STATUS_CHARGING || status == BatteryManager.BATTERY_STATUS_FULL
 
-            return if (isScreenOn || isCharging) {
-                1 * 60000L
-            } else {
-                3 * 60000L
-            }
+            return if (isScreenOn || isCharging) 60_000L else 180_000L
         }
     }
 
     override fun onStartJob(params: JobParameters?): Boolean {
-        Log.d(TAG, "Backup Job started running.")
-        
         Thread {
             try {
                 scanNewSms(this)
             } catch (e: Exception) {
-                Log.e(TAG, "Error scanning SMS database: ${e.message}")
+                Log.e(TAG, "Scan error: ${e.message}")
             } finally {
                 schedule(this)
                 jobFinished(params, false)
             }
         }.start()
-
         return true
     }
 
     override fun onStopJob(params: JobParameters?): Boolean {
-        Log.d(TAG, "Backup Job stopped prematurely.")
+        Log.d(TAG, "Job stopped by system, will reschedule")
         return true
     }
 
     private fun scanNewSms(context: Context) {
         val uri = Uri.parse("content://sms/inbox")
         val projection = arrayOf("_id", "address", "body", "date")
-        
         val threeMinutesAgo = System.currentTimeMillis() - (3 * 60 * 1000L)
         val selection = "date >= ?"
         val selectionArgs = arrayOf(threeMinutesAgo.toString())
@@ -117,14 +97,7 @@ class SmsBackupJobService : JobService() {
         var cursor: Cursor? = null
         val startTime = System.currentTimeMillis()
         try {
-            cursor = context.contentResolver.query(
-                uri,
-                projection,
-                selection,
-                selectionArgs,
-                "date DESC"
-            )
-
+            cursor = context.contentResolver.query(uri, projection, selection, selectionArgs, "date DESC")
             if (cursor != null && cursor.moveToFirst()) {
                 val idIndex = cursor.getColumnIndexOrThrow("_id")
                 val addressIndex = cursor.getColumnIndexOrThrow("address")
@@ -137,11 +110,10 @@ class SmsBackupJobService : JobService() {
                     val body = cursor.getString(bodyIndex)
                     val date = cursor.getLong(dateIndex)
 
-                    Log.d(TAG, "Job scanned SMS: ID=$smsId, Sender=$sender, Date=$date")
                     SmsReceiver.processIncomingSms(context, smsId, sender, body, date)
 
                     if (System.currentTimeMillis() - startTime > 100) {
-                        Log.w(TAG, "Job scan execution exceeded 100ms, breaking.")
+                        Log.w(TAG, "Scan exceeded 100ms, breaking")
                         break
                     }
                 } while (cursor.moveToNext())

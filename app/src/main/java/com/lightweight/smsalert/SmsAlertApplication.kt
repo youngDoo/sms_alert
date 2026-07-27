@@ -13,8 +13,7 @@ class SmsAlertApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Log.d(TAG, "SmsAlertApplication onCreate triggered.")
-
+        Log.i(TAG, "App initialized, re-registering receivers")
         try {
             SmsReceiver.registerDynamic(this)
             SmsBackupJobService.schedule(this, immediate = true)

@@ -349,6 +349,48 @@
                             android:paddingVertical="2dp" />
                     </LinearLayout>
 
+                    <!-- 后台弹出界面（Vivo 专属：允许 Service 启动 Activity 弹窗） -->
+                    <LinearLayout
+                        android:id="@+id/layoutBgPopup"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingVertical="4dp"
+                        android:visibility="gone">
+
+                        <ImageView
+                            android:id="@+id/ivBgPopupStatus"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/ic_menu_info_details"
+                            android:layout_marginEnd="10dp"
+                            app:tint="@color/primary" />
+
+                        <TextView
+                            android:id="@+id/tvPermissionBgPopup"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="后台弹出界面（需开启）"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_main" />
+
+                        <TextView
+                            android:id="@+id/chipBgPopupStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="去设置 →"
+                            android:textSize="11sp"
+                            android:textColor="@color/primary"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="2dp" />
+                    </LinearLayout>
+
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 

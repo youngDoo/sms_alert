@@ -6,22 +6,41 @@
 
 本工具定位为**纯短信增强提醒辅助工具**。严格遵守隐私合规要求与应用商店上架规则：
 *   **刚性红线：** **绝对不**引导用户将本应用设置为默认短信应用。
-*   **合规零保活：** **禁止**任何长驻前台/后台 Service，不申请不必要的自启动、关联启动，任务处理完 1 秒内完全释放唤醒锁，做到**零后台常驻、零额外耗电**。
+*   **极简前台服务：** 仅在用户手动开启监听后，启动一个轻量 Foreground Service（内存占用 < 30MB），仅维持 ContentObserver 注册和 AlarmManager 定时轮询。**不申请自启动、关联启动**。
 *   **不干预系统逻辑：** 绝对不修改、拦截或篡改系统原生短信，完全复用系统自带短信 App 的处理机制。
-*   **极简界面：** 仅包含“主开关”、“权限校验”、“特别关注名单”三大模块。
+*   **极简界面：** 仅包含“主开关”、“权限校验”、“特别关注名单”、"内容规则"四大模块。
+
+> **⚙️ 架构演进说明 (v1 → v2)**  
+> v1 版本采用纯 JobScheduler + 动态广播方案（"零后台常驻"），在实际测试中发现以下问题：
+> - Vivo OriginOS Doze 模式下 JobScheduler 可能延迟 15 分钟以上执行
+> - 应用进程被系统回收后 ContentObserver 失效
+> - Android 13+ 禁止非默认短信应用接收 SMS_RECEIVED 广播
+>
+> v2 升级为 **ForegroundService 常驻监控**的三通道架构：
+> 1. **AlarmManager `setExactAndAllowWhileIdle`** 每 5 秒轮询 `_id > lastProcessedId`（Doze 安全的主通道）
+> 2. **ContentObserver** 监听 `content://sms/inbox` 变化（辅助快速通道）
+> 3. **JobScheduler** 1-3 分钟自适应扫描过去 3 分钟的短信（兜底通道）
+>
+> 三重通道共享同一个 `lastProcessedId`（持久化到 SharedPreferences），Service 重启后不会重处理旧消息。
 
 ---
 
 ## 🛠 核心技术方案与实现细节
 
-### 1. 短信监听双重保障机制
-*   **动态广播注册：** 仅在用户手动开启功能后，动态在 `Application` 上下文注册 `SMS_RECEIVED_ACTION` 广播。关闭后立刻注销。
-    *   广播优先级固定设为 `80`（低于系统默认的 `100`），保证原生短信首先正常接收和存储，且不调用 `abortBroadcast()` 截断广播。
-    *   **版本兼容：** Android 12 及以下兼容静态广播兜底，Android 13 及以上则强制通过代码关闭静态广播组件，严格遵守隐式广播限制规则。
-*   **自适应 JobScheduler 兜底：** 采用原生 `JobScheduler` 实现无感、低功耗的扫描兜底（不依赖任何后台 Service）：
-    *   **自适应间隔：** 亮屏/充电状态下，重调度间隔为 **1分钟**；熄屏/非充电状态下，自动拉长至 **3分钟**。
-    *   **超轻量拉取：** 每次扫描仅通过 SQL 查询 `content://sms/inbox` 中「当前时间往前推 3 分钟以内」的最新短信，不遍历全量数据库，单任务执行时长限制在 100 毫秒以内。
-    *   **纯本地触发：** 强制配置 `setRequiresDeviceIdle(false)` 和 `setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE)`，保证断网或待机状态下仍能精准执行。
+### 1. 短信监听三重保障机制 (v2)
+
+v2 采用 **ForegroundService 内三通道并行** 架构，解决国产 OEM Doze 模式下的监听可靠性问题：
+
+| 通道 | 机制 | 延迟 | Doze 安全 |
+|------|------|------|-----------|
+| **主通道** | AlarmManager `setExactAndAllowWhileIdle` 每 5 秒轮询 | < 5s | ✅（白名单后） |
+| **快速通道** | ContentObserver 监听 `content://sms/inbox` | < 1s | ⚠️ Doze 延迟 2-3 分钟 |
+| **兜底通道** | JobScheduler 自适应扫描（亮屏 1min / 熄屏 3min） | 1-3min | ✅ |
+
+三重通道共享同一个持久化 `lastProcessedId`：
+- `lastProcessedId` 存储于 SharedPreferences，Service 重启后恢复
+- 查询条件：`_id > lastProcessedId ORDER BY date DESC LIMIT 1`
+- 每次处理新短信后立即持久化 `lastProcessedId`
 
 ### 2. 去重防误触规则
 *   内存与 SharedPreferences 双重缓存，保留最近 **10条** 已处理短信的唯一标识（格式：`短信数据库ID + 发送号码 + 接收时间戳（精确到分钟）`）。

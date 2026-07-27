@@ -47,15 +47,7 @@ class ContactAdapter(
                 "notification" -> "提示音"
                 else -> "系统默认"
             }
-            val intervalLabel = when (contact.repeatIntervalSec) {
-                30 -> "30秒"
-                60 -> "1分钟"
-                120 -> "2分钟"
-                180 -> "3分钟"
-                300 -> "5分钟"
-                else -> "${contact.repeatIntervalSec}秒"
-            }
-            binding.tvRingtoneDesc.text = "$ringtoneLabel · $intervalLabel"
+            binding.tvRingtoneDesc.text = ringtoneLabel
 
             binding.btnDelete.setOnClickListener {
                 onDeleteClick(contact)

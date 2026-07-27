@@ -29,9 +29,11 @@ import android.provider.Telephony
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import com.lightweight.smsalert.data.PrefsManager
 import com.lightweight.smsalert.receiver.SmsReceiver
 import com.lightweight.smsalert.ui.AlertActivity
 import com.lightweight.smsalert.ui.MainActivity
+import java.util.concurrent.Executors
 
 class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
 
@@ -49,26 +51,31 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
         private const val NOTIFICATION_ID_RINGING = 1002
         private const val CHANNEL_ID_MONITOR = "sms_alert_monitoring"
         private const val CHANNEL_ID_RINGING = "sms_alert_ringing"
-        private const val POLL_INTERVAL_MS = 5_000L
-        private const val ALARM_REQUEST_CODE = 2001
+        private const val POLL_INTERVAL_FAST_MS = 5_000L
+        private const val POLL_INTERVAL_SLOW_MS = 60_000L
+        private const val ALARM_REQUEST_CODE = 2101
         private var isRinging = false
-        private var lastProcessedId: Long = 0L
+        private var lastSenderName = "未知"
+        private var lastSenderPhone = ""
+        private var lastSmsBody = ""
+
+        fun getLastSenderName() = lastSenderName
+        fun getLastSenderPhone() = lastSenderPhone
+        fun getLastSmsBody() = lastSmsBody
 
         fun startMonitoring(context: Context) {
-            Log.w(TAG, "[DIAG] startMonitoring")
             val intent = Intent(context, RingtoneService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
             else context.startService(intent)
         }
 
         fun stopMonitoring(context: Context) {
-            Log.w(TAG, "[DIAG] stopMonitoring")
             context.stopService(Intent(context, RingtoneService::class.java))
         }
 
         fun startRinging(context: Context, name: String, phone: String, body: String,
                          ringtoneUri: String, intervalSec: Int) {
-            Log.w(TAG, "[DIAG] startRinging: name=$name, phone=$phone, ringtoneUri=$ringtoneUri")
+            Log.i(TAG, "Ringing triggered: name=$name phone=$phone")
             val intent = Intent(context, RingtoneService::class.java).apply {
                 action = ACTION_START
                 putExtra(EXTRA_SENDER_NAME, name)
@@ -81,7 +88,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) context.startForegroundService(intent)
                 else context.startService(intent)
             } catch (e: Exception) {
-                Log.e(TAG, "[DIAG] startRinging FAILED: ${e.message}", e)
+                Log.e(TAG, "Failed to start ringing: ${e.message}", e)
             }
         }
 
@@ -96,37 +103,36 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
     private var vibrator: Vibrator? = null
     private var audioManager: AudioManager? = null
     private var focusRequest: AudioFocusRequest? = null
-    private var wakeLock: PowerManager.WakeLock? = null
     private var smsObserver: ContentObserver? = null
+    private var lastProcessedId: Long = 0L
+    private var alarmFallbackLogged = false  // Exact alarm 降级日志只打一次
+    private val queryExecutor = Executors.newSingleThreadExecutor()
 
     override fun onCreate() {
         super.onCreate()
-        Log.w(TAG, "[DIAG] RingtoneService onCreate")
+        Log.i(TAG, "Service created")
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
             (getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as? VibratorManager)?.defaultVibrator
         else @Suppress("DEPRECATION") getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
-        try {
-            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
-            wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsAlertTool:RingingWakeLock")
-            wakeLock?.acquire(10 * 60 * 1000L)
-        } catch (_: SecurityException) {}
+        lastProcessedId = PrefsManager(this).lastProcessedSmsId
+        Log.i(TAG, "Restored lastProcessedId=$lastProcessedId")
         startForegroundMonitor()
         registerSmsContentObserver()
         scheduleNextPoll()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val action = intent?.action
-        if (action != ACTION_POLL) Log.w(TAG, "[DIAG] onStartCommand: action=$action")
-        when (action) {
-            ACTION_STOP -> { Log.w(TAG, "[DIAG] STOP audio"); stopAudio() }
+        when (intent?.action) {
+            ACTION_STOP -> stopAudio()
             ACTION_START -> {
                 val name = intent.getStringExtra(EXTRA_SENDER_NAME) ?: "未知"
                 val phone = intent.getStringExtra(EXTRA_SENDER_PHONE) ?: ""
                 val body = intent.getStringExtra(EXTRA_SMS_BODY) ?: ""
                 val uri = intent.getStringExtra(EXTRA_RINGTONE_URI) ?: "default"
-                Log.w(TAG, "[DIAG] RING: name=$name, phone=$phone, uri=$uri")
+                @Suppress("UNUSED_VARIABLE")
+                val intervalSec = intent.getIntExtra(EXTRA_INTERVAL_SEC, 30)
+                lastSenderName = name; lastSenderPhone = phone; lastSmsBody = body
                 isRinging = true
                 showRingingNotification(name, phone)
                 requestAlarmAudioFocus()
@@ -141,7 +147,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.w(TAG, "[DIAG] onDestroy")
+        Log.i(TAG, "Service destroyed")
         cancelPollAlarm(); stopAudio()
         try { smsObserver?.let { contentResolver.unregisterContentObserver(it) } } catch (_: Exception) {}
         smsObserver = null
@@ -149,7 +155,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) focusRequest?.let { audioManager?.abandonAudioFocusRequest(it) }
             else @Suppress("DEPRECATION") audioManager?.abandonAudioFocus(this)
         } catch (_: Exception) {}
-        try { if (wakeLock != null && wakeLock!!.isHeld) wakeLock!!.release() } catch (_: Exception) {}
+        queryExecutor.shutdown()
         isRinging = false
     }
 
@@ -200,7 +206,6 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
             startForeground(NOTIFICATION_ID_RINGING, n, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         else startForeground(NOTIFICATION_ID_RINGING, n)
-        Log.w(TAG, "[DIAG] Ringing notification shown")
     }
 
     private fun createRingingChannel() {
@@ -220,7 +225,6 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
         smsObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
             override fun onChange(selfChange: Boolean, uri: Uri?) {
                 super.onChange(selfChange, uri)
-                Log.w(TAG, "[DIAG] ContentObserver.onChange")
                 if (hasReadSmsPermission()) queryAndProcessLatestSms("CO")
             }
         }
@@ -232,14 +236,28 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
         val pi = PendingIntent.getService(this, ALARM_REQUEST_CODE,
             Intent(this, RingtoneService::class.java).apply { action = ACTION_POLL },
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val t = SystemClock.elapsedRealtime() + POLL_INTERVAL_MS
+        val pollInterval = resolvePollInterval()
+        val t = SystemClock.elapsedRealtime() + pollInterval
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !am.canScheduleExactAlarms()) {
             am.setAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, t, pi)
-            Log.w(TAG, "[DIAG] Alarm: inexact (SCHEDULE_EXACT_ALARM denied)")
+            if (!alarmFallbackLogged) {
+                Log.w(TAG, "Exact alarm denied, using inexact fallback (interval=${pollInterval}ms)")
+                alarmFallbackLogged = true
+            }
         } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             am.setExactAndAllowWhileIdle(AlarmManager.ELAPSED_REALTIME_WAKEUP, t, pi)
         } else {
             am.setExact(AlarmManager.ELAPSED_REALTIME_WAKEUP, t, pi)
+        }
+    }
+
+    private fun resolvePollInterval(): Long {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+            if (pm.isIgnoringBatteryOptimizations(packageName)) POLL_INTERVAL_FAST_MS
+            else POLL_INTERVAL_SLOW_MS
+        } else {
+            POLL_INTERVAL_FAST_MS
         }
     }
 
@@ -256,7 +274,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
     }
 
     private fun queryAndProcessLatestSms(src: String) {
-        Thread {
+        queryExecutor.execute {
             try {
                 contentResolver.query(Telephony.Sms.Inbox.CONTENT_URI,
                     arrayOf("_id", "address", "body", "date"),
@@ -266,15 +284,18 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
                         val addr = it.getString(it.getColumnIndexOrThrow("address"))
                         val body = it.getString(it.getColumnIndexOrThrow("body")) ?: ""
                         val date = it.getLong(it.getColumnIndexOrThrow("date"))
-                        if (addr.isNullOrEmpty()) return@use
-                        Log.w(TAG, "[DIAG] $src newSMS: id=$id, sender=$addr")
+                        if (addr.isNullOrEmpty()) return@execute
                         lastProcessedId = id
+                        PrefsManager(this@RingtoneService).lastProcessedSmsId = id
                         SmsReceiver.processIncomingSms(this@RingtoneService, id.toString(), addr, body, date)
                     }
                 }
-            } catch (e: SecurityException) { Log.e(TAG, "[DIAG] $src denied: ${e.message}")
-            } catch (e: Exception) { Log.e(TAG, "[DIAG] $src err: ${e.javaClass.simpleName}", e) }
-        }.start()
+            } catch (e: SecurityException) {
+                Log.e(TAG, "SMS query permission denied: ${e.message}")
+            } catch (e: Exception) {
+                Log.e(TAG, "SMS query error: ${e.javaClass.simpleName}", e)
+            }
+        }
     }
 
     private fun hasReadSmsPermission() =
@@ -285,7 +306,7 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
         try { vibrator?.cancel() } catch (_: Exception) {}
         isRinging = false
         cancelRingingNotification()
-        Log.w(TAG, "[DIAG] stopAudio")
+        Log.i(TAG, "Ringing stopped")
     }
 
     private fun requestAlarmAudioFocus() {
@@ -294,13 +315,13 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
                 .setAudioAttributes(AudioAttributes.Builder()
                     .setUsage(AudioAttributes.USAGE_ALARM).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build())
                 .setAcceptsDelayedFocusGain(true).setOnAudioFocusChangeListener(this).build()
-            focusRequest?.let { Log.w(TAG, "[DIAG] AudioFocus: ${audioManager?.requestAudioFocus(it)}") }
+            focusRequest?.let { audioManager?.requestAudioFocus(it) }
         } else @Suppress("DEPRECATION")
-            Log.w(TAG, "[DIAG] AudioFocus: ${audioManager?.requestAudioFocus(this, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN)}")
+            audioManager?.requestAudioFocus(this, AudioManager.STREAM_ALARM, AudioManager.AUDIOFOCUS_GAIN)
     }
 
     private fun resolveRingtoneUri(s: String): Uri {
-        val uri = when (s) {
+        return when (s) {
             "alarm" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM)
             "ringtone" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             "notification" -> RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
@@ -308,7 +329,6 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
                 ?: RingtoneManager.getDefaultUri(RingtoneManager.TYPE_RINGTONE)
             else -> Uri.parse(s)
         }
-        Log.w(TAG, "[DIAG] ringtoneUri: '$s' → $uri"); return uri
     }
 
     private fun playAlertRingtone(uriStr: String) {
@@ -321,8 +341,9 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
                 else @Suppress("DEPRECATION") setAudioStreamType(AudioManager.STREAM_ALARM)
                 isLooping = true; prepare(); start()
             }
-            Log.w(TAG, "[DIAG] playRingtone: OK, playing=${mediaPlayer?.isPlaying}")
-        } catch (e: Exception) { Log.e(TAG, "[DIAG] playRingtone FAILED: ${e.javaClass.simpleName}: ${e.message}", e) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to play ringtone: ${e.javaClass.simpleName}: ${e.message}", e)
+        }
     }
 
     private fun startVibration() {
@@ -330,13 +351,19 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
             val p = longArrayOf(0, 800, 800)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) vibrator?.vibrate(VibrationEffect.createWaveform(p, 0))
             else @Suppress("DEPRECATION") vibrator?.vibrate(p, 0)
-        } catch (e: Exception) { Log.e(TAG, "[DIAG] vibrate FAILED: ${e.message}", e) }
+        } catch (e: Exception) {
+            Log.e(TAG, "Vibration failed: ${e.message}", e)
+        }
     }
 
     private fun launchAlertActivity(name: String, phone: String, body: String) {
-        startActivity(Intent(this, AlertActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("sender_name", name); putExtra("sender_phone", phone); putExtra("sms_body", body)
-        })
+        try {
+            startActivity(Intent(this, AlertActivity::class.java).apply {
+                flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                putExtra("sender_name", name); putExtra("sender_phone", phone); putExtra("sms_body", body)
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch AlertActivity: ${e.javaClass.simpleName}: ${e.message}", e)
+        }
     }
 }

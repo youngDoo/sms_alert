@@ -16,6 +16,7 @@ class PrefsManager(context: Context) {
         private const val KEY_CONTACTS = "special_contacts"
         private const val KEY_CONTENT_RULES = "content_rules"
         private const val KEY_SMS_CACHE = "processed_sms_cache"
+        private const val KEY_LAST_PROCESSED_ID = "last_processed_sms_id"
         private const val MAX_CACHE_SIZE = 10
     }
 
@@ -30,6 +31,11 @@ class PrefsManager(context: Context) {
     var isScanEnabled: Boolean
         get() = prefs.getBoolean(KEY_SCAN_ENABLED, true)
         set(value) = prefs.edit().putBoolean(KEY_SCAN_ENABLED, value).apply()
+
+    /** RingtoneService 上次处理的短信 _id，用于 Service 重启后恢复去重状态 */
+    var lastProcessedSmsId: Long
+        get() = prefs.getLong(KEY_LAST_PROCESSED_ID, 0L)
+        set(value) = prefs.edit().putLong(KEY_LAST_PROCESSED_ID, value).apply()
 
     fun getContacts(): List<SpecialContact> {
         val jsonStr = prefs.getString(KEY_CONTACTS, null) ?: return emptyList()

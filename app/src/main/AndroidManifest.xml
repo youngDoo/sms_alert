@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 仅允许申请以下 3 个系统权限，多一个权限都不要添加 -->
+    <!-- 仅允许申请必要的系统权限，严格遵守权限最小化原则 -->
     <uses-permission android:name="android.permission.RECEIVE_SMS" />
     <uses-permission android:name="android.permission.READ_SMS" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
-    <!-- 修复：添加 WAKE_LOCK 权限（SmsReceiver/RingtoneService 均使用 WakeLock） -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -35,16 +34,16 @@
         </activity>
 
         <!-- 提醒 Activity：亮屏时显示为悬浮窗，锁屏时显示为全屏 Activity -->
+        <!-- 不设置 launchMode，由 Intent flags (NEW_TASK|CLEAR_TOP|SINGLE_TOP) 控制行为 -->
         <activity
             android:name=".ui.AlertActivity"
             android:excludeFromRecents="true"
             android:exported="false"
-            android:launchMode="singleInstance"
             android:showWhenLocked="true"
             android:turnScreenOn="true"
             android:theme="@style/Theme.SmsAlertTool.AlertActivity" />
 
-        <!-- 铃声与振动后台控制 Service (使用普通 Service，不使用常驻 Service，随播随用) -->
+        <!-- 铃声与振动后台控制 Service（ForegroundService 常驻监控 + 响铃控制） -->
         <service
                     android:name=".service.RingtoneService"
                     android:exported="false"

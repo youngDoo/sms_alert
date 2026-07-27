@@ -55,17 +55,12 @@
         android:layout_marginTop="4dp" />
 
     <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="自定义重复响铃间隔"
-        android:textSize="12sp"
-        android:textColor="@color/text_muted"
-        android:layout_marginTop="12dp" />
-
-    <Spinner
-        android:id="@+id/spinnerInterval"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:layout_marginTop="4dp" />
+        android:layout_height="wrap_content"
+        android:text="响铃将持续到手动点击「我已知晓」停止"
+        android:textSize="11sp"
+        android:textColor="@color/text_muted"
+        android:layout_marginTop="12dp"
+        android:gravity="center" />
 
 </LinearLayout>

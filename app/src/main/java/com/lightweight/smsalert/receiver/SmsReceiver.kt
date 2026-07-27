@@ -5,8 +5,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
-import android.os.Handler
-import android.os.Looper
 import android.os.PowerManager
 import android.provider.Telephony
 import android.util.Log
@@ -27,17 +25,8 @@ class SmsReceiver : BroadcastReceiver() {
 
         fun registerDynamic(context: Context) {
             val prefs = PrefsManager(context)
-            Log.w(TAG, "[DIAG] registerDynamic: isListenerEnabled=${prefs.isListenerEnabled}, isBroadcastEnabled=${prefs.isBroadcastEnabled}, SDK=${Build.VERSION.SDK_INT}")
-            if (!prefs.isListenerEnabled) {
-                Log.w(TAG, "[DIAG] registerDynamic BLOCKED: isListenerEnabled=false")
-                return
-            }
-            if (!prefs.isBroadcastEnabled) {
-                Log.w(TAG, "[DIAG] registerDynamic BLOCKED: isBroadcastEnabled=false")
-                return
-            }
-
-            // 启动前台常驻 RingtoneService（ContentObserver 在 Service 内注册，进程不会被杀）
+            if (!prefs.isListenerEnabled) return
+            if (!prefs.isBroadcastEnabled) return
             RingtoneService.startMonitoring(context)
             syncStaticReceiverState(context, true)
         }
@@ -51,26 +40,20 @@ class SmsReceiver : BroadcastReceiver() {
         fun processIncomingSms(context: Context, smsId: String, sender: String, body: String, timestamp: Long) {
             val prefs = PrefsManager(context)
 
-            val contacts = prefs.getContacts()
-            Log.w(TAG, "[DIAG] processIncomingSms: sender=$sender, contactsCount=${contacts.size}, smsId=$smsId, ts=$timestamp")
-
             if (prefs.isDuplicateSms(smsId, sender, timestamp)) {
-                Log.w(TAG, "[DIAG] processIncomingSms BLOCKED: duplicate SMS, sender=$sender")
+                Log.d(TAG, "Duplicate SMS ignored: sender=$sender")
                 return
             }
 
             val contact = prefs.findMatchingContact(sender)
             if (contact != null) {
-                Log.w(TAG, "[DIAG] processIncomingSms MATCHED contact: name=${contact.name}, phone=${contact.phoneNumber}")
+                Log.i(TAG, "Contact matched: name=${contact.name} phone=${contact.phoneNumber}")
                 RingtoneService.startRinging(context, contact.name, contact.phoneNumber, body, contact.ringtoneUri, contact.repeatIntervalSec)
             } else {
-                // 号码未匹配 → 尝试内容正则
                 val contentRule = prefs.findMatchingContentRule(body)
                 if (contentRule != null) {
-                    Log.w(TAG, "[DIAG] processIncomingSms MATCHED contentRule: name=${contentRule.name}, pattern=${contentRule.pattern}")
+                    Log.i(TAG, "Content rule matched: name=${contentRule.name}")
                     RingtoneService.startRinging(context, contentRule.name, sender, body, contentRule.ringtoneUri, contentRule.repeatIntervalSec)
-                } else {
-                    Log.w(TAG, "[DIAG] processIncomingSms NO MATCH: sender=$sender")
                 }
             }
         }
@@ -89,32 +72,28 @@ class SmsReceiver : BroadcastReceiver() {
 
             try {
                 pm.setComponentEnabledSetting(componentName, newState, PackageManager.DONT_KILL_APP)
-                Log.d(TAG, "Static SMS Receiver state set to: $newState")
             } catch (e: Exception) {
                 Log.e(TAG, "Error setting static receiver state: ${e.message}")
             }
         }
     }
 
-    // ─── BroadcastReceiver 路径：Android 12 及以下兜底 ──────────────
-
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != "android.provider.Telephony.SMS_RECEIVED") return
-        Log.w(TAG, "[DIAG] === SMS_RECEIVED broadcast FIRED (SDK=${Build.VERSION.SDK_INT}) ===")
 
         if (!checkBcastPermissions(context)) {
-            Log.w(TAG, "[DIAG] onReceive BLOCKED: SMS permissions missing")
+            Log.w(TAG, "SMS permissions missing, showing permission notification")
             sendBcastPermissionNotification(context)
             return
         }
 
         val powerManager = context.getSystemService(Context.POWER_SERVICE) as? PowerManager
-        var wakeLock: PowerManager.WakeLock? = null
-        try {
-            wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsAlertTool:SmsWakeLock")
-            wakeLock?.acquire(WAKE_LOCK_TIMEOUT_MS)
+        val wakeLock: PowerManager.WakeLock? = try {
+            powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "SmsAlertTool:SmsWakeLock")
+                ?.also { it.acquire(WAKE_LOCK_TIMEOUT_MS) }
         } catch (e: SecurityException) {
             Log.e(TAG, "WakeLock permission missing: ${e.message}")
+            null
         }
 
         try {
@@ -127,30 +106,26 @@ class SmsReceiver : BroadcastReceiver() {
             val bodyBuilder = StringBuilder()
             for (msg in messages) bodyBuilder.append(msg.messageBody)
 
+            // 广播路径无法获取 _id，使用 sender+timestamp 作为去重标识
+            val broadcastSmsId = "${sender}_${firstMsg.timestampMillis}"
             Companion.processIncomingSms(context,
-                firstMsg.indexOnIcc.toString(), sender,
+                broadcastSmsId, sender,
                 bodyBuilder.toString(), firstMsg.timestampMillis)
 
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing SMS: ${e.message}")
         } finally {
             try {
-                Handler(Looper.getMainLooper()).postDelayed({
-                    if (wakeLock != null && wakeLock!!.isHeld) wakeLock!!.release()
-                }, 1000)
-            } catch (e: Exception) { e.printStackTrace() }
+                if (wakeLock != null && wakeLock.isHeld) wakeLock.release()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error releasing WakeLock: ${e.message}")
+            }
         }
     }
 
     private fun checkBcastPermissions(context: Context): Boolean {
-        val hasReceive = ContextCompat.checkSelfPermission(
-            context, android.Manifest.permission.RECEIVE_SMS
-        ) == PackageManager.PERMISSION_GRANTED
-        val hasRead = ContextCompat.checkSelfPermission(
-            context, android.Manifest.permission.READ_SMS
-        ) == PackageManager.PERMISSION_GRANTED
-        Log.w(TAG, "[DIAG] checkBcastPermissions: RECEIVE_SMS=$hasReceive, READ_SMS=$hasRead")
-        return hasReceive && hasRead
+        return ContextCompat.checkSelfPermission(context, android.Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
+                && ContextCompat.checkSelfPermission(context, android.Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
     }
 
     private fun sendBcastPermissionNotification(context: Context) {
