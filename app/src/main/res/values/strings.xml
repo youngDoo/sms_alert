@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">特别短信提醒</string>
+    <string name="app_name">短信钉</string>
     <string name="pref_listener_enabled_key">listener_enabled</string>
     <string name="alert_title">特别关注短信提醒</string>
     <string name="alert_dismiss_btn">我已知晓</string>

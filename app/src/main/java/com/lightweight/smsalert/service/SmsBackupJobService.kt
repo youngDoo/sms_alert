@@ -131,7 +131,6 @@ class SmsBackupJobService : JobService() {
                 val bodyIndex = cursor.getColumnIndexOrThrow("body")
                 val dateIndex = cursor.getColumnIndexOrThrow("date")
 
-                val smsReceiver = SmsReceiver()
                 do {
                     val smsId = cursor.getString(idIndex)
                     val sender = cursor.getString(addressIndex)
@@ -139,7 +138,7 @@ class SmsBackupJobService : JobService() {
                     val date = cursor.getLong(dateIndex)
 
                     Log.d(TAG, "Job scanned SMS: ID=$smsId, Sender=$sender, Date=$date")
-                    smsReceiver.processIncomingSms(context, smsId, sender, body, date)
+                    SmsReceiver.processIncomingSms(context, smsId, sender, body, date)
 
                     if (System.currentTimeMillis() - startTime > 100) {
                         Log.w(TAG, "Job scan execution exceeded 100ms, breaking.")

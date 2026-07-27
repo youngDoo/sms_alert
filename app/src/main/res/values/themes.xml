@@ -22,7 +22,7 @@
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
-    <!-- ========== AlertActivity 悬浮弹窗主题（锁屏+亮屏强提醒） ========== -->
+    <!-- AlertActivity 悬浮弹窗主题（锁屏+亮屏强提醒） -->
     <style name="Theme.SmsAlertTool.AlertActivity" parent="Theme.Material3.Light.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
@@ -32,7 +32,6 @@
         <item name="android:windowCloseOnTouchOutside">false</item>
         <item name="android:backgroundDimEnabled">true</item>
         <item name="android:backgroundDimAmount">0.6</item>
-        <!-- 弹窗也适配挖孔 -->
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 </resources>

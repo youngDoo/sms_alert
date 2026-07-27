@@ -19,7 +19,7 @@
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             android:paddingHorizontal="8dp"
-            app:title="特别短信提醒"
+            app:title="短信钉"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
             app:titleTextColor="@color/text_main">
 
@@ -302,6 +302,45 @@
 
                         <TextView
                             android:id="@+id/chipNotifyStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="已授权"
+                            android:textSize="11sp"
+                            android:paddingHorizontal="8dp"
+                            android:paddingVertical="2dp" />
+                    </LinearLayout>
+
+                    <!-- 后台高耗电（保活） -->
+                    <LinearLayout
+                        android:id="@+id/layoutBatteryOpt"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginTop="8dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:paddingVertical="4dp">
+
+                        <ImageView
+                            android:id="@+id/ivBatteryStatus"
+                            android:layout_width="20dp"
+                            android:layout_height="20dp"
+                            android:src="@android:drawable/presence_online"
+                            android:layout_marginEnd="10dp" />
+
+                        <TextView
+                            android:id="@+id/tvPermissionBattery"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="后台高耗电（保活）"
+                            android:textSize="13sp"
+                            android:textColor="@color/text_main" />
+
+                        <TextView
+                            android:id="@+id/chipBatteryStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="已授权"

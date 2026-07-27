@@ -140,6 +140,13 @@ class MainActivity : AppCompatActivity() {
                 jumpToSettings()
             }
         }
+
+        // 电池优化行点击 → 跳转后台高耗电设置
+        binding.layoutBatteryOpt.setOnClickListener {
+            if (!isIgnoringBatteryOptimizations()) {
+                jumpToBatterySettings()
+            }
+        }
     }
 
     private fun applySubSwitchStates() {
@@ -172,6 +179,13 @@ class MainActivity : AppCompatActivity() {
         } else true
     }
 
+    private fun isIgnoringBatteryOptimizations(): Boolean {
+        val pm = getSystemService(POWER_SERVICE) as android.os.PowerManager
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            pm.isIgnoringBatteryOptimizations(packageName)
+        } else true
+    }
+
     private fun updatePermissionStatus() {
         // 短信权限
         if (hasSmsPermissions()) {
@@ -201,6 +215,21 @@ class MainActivity : AppCompatActivity() {
             binding.chipNotifyStatus.text = "未授权"
             binding.chipNotifyStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
             binding.chipNotifyStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
+        }
+
+        // 电池优化（后台高耗电）
+        if (isIgnoringBatteryOptimizations()) {
+            binding.ivBatteryStatus.setImageResource(android.R.drawable.presence_online)
+            binding.ivBatteryStatus.setColorFilter(ContextCompat.getColor(this, R.color.success))
+            binding.chipBatteryStatus.text = "已授权"
+            binding.chipBatteryStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
+            binding.chipBatteryStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
+        } else {
+            binding.ivBatteryStatus.setImageResource(android.R.drawable.presence_offline)
+            binding.ivBatteryStatus.setColorFilter(ContextCompat.getColor(this, R.color.error))
+            binding.chipBatteryStatus.text = "未授权"
+            binding.chipBatteryStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
+            binding.chipBatteryStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
         }
     }
 
@@ -314,6 +343,25 @@ class MainActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to open settings: ${e.message}")
             Toast.makeText(this, "跳转设置页面失败，请手动到系统设置中开启权限", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    private fun jumpToBatterySettings() {
+        try {
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+            } else {
+                Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = Uri.fromParts("package", packageName, null)
+                }
+            }
+            startActivity(intent)
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to open battery settings: ${e.message}")
+            // fallback to general settings
+            jumpToSettings()
         }
     }
 }

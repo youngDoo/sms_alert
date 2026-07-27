@@ -2,6 +2,7 @@ package com.lightweight.smsalert.ui
 
 import android.os.Build
 import android.os.Bundle
+import android.util.Log
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import com.lightweight.smsalert.databinding.ActivityAlertFullscreenBinding
@@ -13,16 +14,12 @@ class AlertActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+        Log.w("AlertActivity", "[DIAG] AlertActivity.onCreate: showing alert UI")
+
         setupLockScreenBypass()
 
         binding = ActivityAlertFullscreenBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
-        val lp = window.attributes
-        lp.width = WindowManager.LayoutParams.WRAP_CONTENT
-        lp.height = WindowManager.LayoutParams.WRAP_CONTENT
-        window.attributes = lp
 
         setFinishOnTouchOutside(false)
 
@@ -61,6 +58,6 @@ class AlertActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        // Force dismiss button click
+        // Block back button
     }
 }

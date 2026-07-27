@@ -9,6 +9,10 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <application
         android:name=".SmsAlertApplication"
@@ -42,8 +46,9 @@
 
         <!-- 铃声与振动后台控制 Service (使用普通 Service，不使用常驻 Service，随播随用) -->
         <service
-            android:name=".service.RingtoneService"
-            android:exported="false" />
+                    android:name=".service.RingtoneService"
+                    android:exported="false"
+                    android:foregroundServiceType="specialUse" />
 
         <!-- 兜底 JobScheduler Service -->
         <service
