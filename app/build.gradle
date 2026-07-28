@@ -4,8 +4,7 @@ plugins {
 
 android {
     namespace = 'com.lightweight.smsalert'
-    compileSdk = 36
-
+    compileSdk = 37
     defaultConfig {
         applicationId "com.lightweight.smsalert"
         minSdk = 26
@@ -49,7 +48,7 @@ dependencies {
 
     // Unit test (纯 JVM，无 Robolectric)
     testImplementation 'junit:junit:4.13.2'
-    testImplementation 'org.json:json:20231013'
+    testImplementation 'org.json:json:20260719'
 
     // Instrumented test
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
