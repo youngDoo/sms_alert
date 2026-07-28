@@ -3,15 +3,15 @@ plugins {
 }
 
 android {
-    namespace 'com.lightweight.smsalert'
-    compileSdk 36
+    namespace = 'com.lightweight.smsalert'
+    compileSdk = 36
 
     defaultConfig {
         applicationId "com.lightweight.smsalert"
-        minSdk 26
+        minSdk = 26
         //noinspection OldTargetApi
-        targetSdk 36
-        versionCode 1
+        targetSdk = 36
+        versionCode = 1
         versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -19,8 +19,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            shrinkResources true
+            minifyEnabled = true
+            shrinkResources = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -36,9 +36,9 @@ android {
     }
 
     buildFeatures {
-        viewBinding true
+        viewBinding = true
     }
-    compileSdkMinor 1
+    compileSdkMinor = 1
 }
 
 dependencies {
