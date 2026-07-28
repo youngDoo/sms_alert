@@ -23,3 +23,4 @@ local.properties
 # --- Temp / Planning ---
 tasks/
 historical_context.txt
+.worktrees/
