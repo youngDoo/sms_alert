@@ -19,6 +19,7 @@ local.properties
 
 # --- Secrets ---
 .env
+*.jks
 
 # --- Temp / Planning ---
 tasks/
