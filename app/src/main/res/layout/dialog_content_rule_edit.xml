@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="规则名称（如：验证码）">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etRuleName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:hint="正则表达式（如：验证码.*\d{4,6}）">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/etRulePattern"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="选择专属铃声"
+        android:textSize="12sp"
+        android:textColor="@color/text_muted"
+        android:layout_marginTop="12dp" />
+
+    <Spinner
+        android:id="@+id/spinnerRingtone"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:layout_marginTop="4dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="响铃将持续到手动点击「我已知晓」停止"
+        android:textSize="11sp"
+        android:textColor="@color/text_muted"
+        android:layout_marginTop="12dp"
+        android:gravity="center" />
+
+</LinearLayout>

@@ -21,7 +21,8 @@
             android:paddingHorizontal="8dp"
             app:title="短信钉"
             app:titleTextAppearance="@style/TextAppearance.Material3.TitleLarge"
-            app:titleTextColor="@color/text_main">
+            app:titleTextColor="@color/text_main"
+            app:menu="@menu/toolbar_menu">
 
             <TextView
                 android:layout_width="wrap_content"
@@ -420,7 +421,19 @@
                     android:text="0人"
                     android:textSize="12sp"
                     android:textColor="@color/text_muted"
-                    android:layout_marginEnd="12dp" />
+                    android:layout_marginEnd="8dp" />
+
+                <!-- 导入：内联 TonalButton，替代原来的 FAB -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnImportContact"
+                    style="@style/Widget.Material3.Button.TonalButton.Icon"
+                    android:layout_width="wrap_content"
+                    android:layout_height="40dp"
+                    android:text="导入"
+                    app:icon="@android:drawable/ic_menu_myplaces"
+                    app:iconSize="18dp"
+                    android:textSize="13sp"
+                    android:layout_marginEnd="6dp" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnAddContact"
@@ -446,7 +459,7 @@
                 android:id="@+id/tvNoContacts"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="暂无特别关注联系人\n点击右上角「添加」按钮导入"
+                android:text="暂无特别关注联系人\n点击上方「导入」或「添加」按钮新增"
                 android:textSize="14sp"
                 android:textColor="@color/text_muted"
                 android:gravity="center"
@@ -457,17 +470,4 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-    <!-- 通讯录导入 FAB -->
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btnImportContact"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_margin="20dp"
-        android:contentDescription="从通讯录导入"
-        app:srcCompat="@android:drawable/ic_menu_myplaces"
-        app:tint="@color/text_on_primary"
-        app:backgroundTint="@color/primary"
-        app:fabSize="normal" />
-
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>

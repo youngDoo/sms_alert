@@ -1,5 +1,5 @@
 <resources>
-    <!-- ========== 主主题：Material3 + 挖孔屏适配 + Edge-to-Edge ========== -->
+    <!-- 主主题：Material3 + 挖孔屏适配 + Edge-to-Edge -->
     <style name="Theme.SmsAlertTool" parent="Theme.Material3.Light.NoActionBar">
         <!-- Material3 动态取色基础 -->
         <item name="colorPrimary">@color/primary</item>

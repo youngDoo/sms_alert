@@ -12,10 +12,15 @@ import android.os.Bundle
 import android.provider.ContactsContract
 import android.provider.Settings
 import android.util.Log
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -189,6 +194,25 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    // ─── 工具栏菜单 ────────────────────────────────────────────────
+
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.toolbar_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            R.id.action_about -> {
+                showAboutDialog()
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    // ─── 权限检测 ──────────────────────────────────────────────────
 
     private fun hasSmsPermissions(): Boolean {
         return ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
@@ -397,7 +421,6 @@ class MainActivity : AppCompatActivity() {
         val parent = binding.rvContacts.parent as? LinearLayout ?: return
         contentRulesContainer?.let { parent.removeView(it) }
 
-        // 始终显示标题+添加按钮（即使规则为空）
         // 容器
         val container = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -407,7 +430,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 8.dp(), 0, 0)
         }
 
-        // 标题行
+        // 标题行（与联系人标题行保持一致）
         val header = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = android.view.Gravity.CENTER_VERTICAL
@@ -427,57 +450,39 @@ class MainActivity : AppCompatActivity() {
                 LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
             ).apply { marginEnd = 12.dp() }
         }
-        val addBtn = com.google.android.material.button.MaterialButton(this).apply {
-            text = "添加"
-            textSize = 13f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, 40.dp()
-            )
-            setIconResource(android.R.drawable.ic_input_add)
-            iconSize = 18.dp()
-            setOnClickListener { showAddContentRuleDialog() }
-        }
+        // ★ 添加按钮：inflate XML 布局，与联系人按钮 100% 一致的 TonalButton.Icon 样式
+        val addBtn = LayoutInflater.from(this).inflate(
+            R.layout.btn_add_tonal, container, false
+        ) as com.google.android.material.button.MaterialButton
+        addBtn.setOnClickListener { showAddContentRuleDialog() }
         header.addView(title)
         header.addView(count)
         header.addView(addBtn)
         container.addView(header)
 
-        // 规则列表
+        // ★ 规则列表：使用 item_content_rule.xml 卡片布局，与联系人卡片风格统一
         for (rule in rules) {
-            val item = LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
-                gravity = android.view.Gravity.CENTER_VERTICAL
-                setPadding(12.dp(), 10.dp(), 8.dp(), 10.dp())
-                layoutParams = LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-                ).apply { topMargin = 6.dp() }
-                setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.bg_surface_variant))
-            }
-            val info = LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-            val nameTv = TextView(this).apply {
-                text = rule.name; textSize = 14f
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_main))
-            }
-            val patternTv = TextView(this).apply {
-                text = rule.pattern; textSize = 11f
-                setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
-            }
-            info.addView(nameTv); info.addView(patternTv)
+            val itemView = LayoutInflater.from(this).inflate(R.layout.item_content_rule, container, false)
+            val tvIcon = itemView.findViewById<TextView>(R.id.tvRuleIcon)
+            val tvName = itemView.findViewById<TextView>(R.id.tvRuleName)
+            val tvPattern = itemView.findViewById<TextView>(R.id.tvRulePattern)
+            val tvRingtone = itemView.findViewById<TextView>(R.id.tvRuleRingtone)
+            val btnDelete = itemView.findViewById<ImageButton>(R.id.btnDeleteRule)
 
-            val deleteBtn = com.google.android.material.button.MaterialButton(this).apply {
-                setIconResource(android.R.drawable.ic_delete)
-                iconSize = 16.dp()
-                layoutParams = LinearLayout.LayoutParams(36.dp(), 36.dp())
-                setOnClickListener {
-                    prefsManager.removeContentRule(rule.id)
-                    refreshContentRules()
-                }
+            tvIcon.text = rule.name.firstOrNull()?.toString() ?: "规"
+            tvName.text = rule.name
+            tvPattern.text = rule.pattern
+            tvRingtone.text = when (rule.ringtoneUri) {
+                "alarm" -> "闹钟音"
+                "ringtone" -> "电话铃"
+                "notification" -> "提示音"
+                else -> "系统默认"
             }
-            item.addView(info); item.addView(deleteBtn)
-            container.addView(item)
+            btnDelete.setOnClickListener {
+                prefsManager.removeContentRule(rule.id)
+                refreshContentRules()
+            }
+            container.addView(itemView)
         }
 
         parent.addView(container)
@@ -485,41 +490,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddContentRuleDialog() {
-        val dialogLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(48.dp(), 24.dp(), 48.dp(), 8.dp())
-        }
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_content_rule_edit, null)
+        val etName = dialogView.findViewById<EditText>(R.id.etRuleName)
+        val etPattern = dialogView.findViewById<EditText>(R.id.etRulePattern)
+        val spinnerRingtone = dialogView.findViewById<Spinner>(R.id.spinnerRingtone)
 
-        val etName = EditText(this).apply {
-            hint = "规则名称（如：验证码）"
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        }
-        val etPattern = EditText(this).apply {
-            hint = "正则表达式（如：验证码.*\\d{4,6}）"
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
-        }
-        val spinnerRingtone = android.widget.Spinner(this).apply {
-            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_item,
-                arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音"))
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
-        }
-
-        val noteText = TextView(this).apply {
-            text = "响铃将持续到手动点击「我已知晓」停止"
-            textSize = 11f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
-            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT).apply { topMargin = 12.dp() }
-            gravity = android.view.Gravity.CENTER
-        }
-
-        dialogLayout.addView(etName)
-        dialogLayout.addView(etPattern)
-        dialogLayout.addView(spinnerRingtone)
-        dialogLayout.addView(noteText)
+        val ringtoneOptions = arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音")
+        val ringtoneAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions)
+        ringtoneAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        spinnerRingtone.adapter = ringtoneAdapter
 
         AlertDialog.Builder(this)
             .setTitle("添加内容规则")
-            .setView(dialogLayout)
+            .setView(dialogView)
             .setPositiveButton("保存") { dialog, _ ->
                 val name = etName.text.toString().trim()
                 val pattern = etPattern.text.toString().trim()
@@ -532,12 +515,148 @@ class MainActivity : AppCompatActivity() {
                 }
                 prefsManager.addContentRule(ContentRule(
                     id = UUID.randomUUID().toString(), name = name, pattern = pattern,
-                    ringtoneUri = ringtone, repeatIntervalSec = 30  // 保留字段向后兼容
+                    ringtoneUri = ringtone, repeatIntervalSec = 30
                 ))
                 refreshContentRules()
                 dialog.dismiss()
             }
             .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    // ─── 关于 ──────────────────────────────────────────────────────
+
+    private fun showAboutDialog() {
+        val versionName = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.0"
+        } catch (e: PackageManager.NameNotFoundException) {
+            "1.0.0"
+        }
+
+        val aboutLayout = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = android.view.Gravity.CENTER_HORIZONTAL
+            setPadding(48.dp(), 32.dp(), 48.dp(), 16.dp())
+        }
+
+        // 应用图标
+        val iconView = TextView(this).apply {
+            text = "钉"
+            textSize = 32f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            gravity = android.view.Gravity.CENTER
+            width = 72.dp()
+            height = 72.dp()
+            background = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_avatar_circle)
+        }
+        aboutLayout.addView(iconView)
+
+        // 应用名 + 版本
+        val nameView = TextView(this).apply {
+            text = "短信钉  $versionName"
+            textSize = 18f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_main))
+            setTypeface(null, android.graphics.Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 16.dp() }
+        }
+        aboutLayout.addView(nameView)
+
+        // 描述
+        val descView = TextView(this).apply {
+            text = "零后台 · 不耗电\n特别关注短信提醒工具"
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            gravity = android.view.Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 12.dp() }
+            setLineSpacing(4.dp().toFloat(), 1.0f)
+        }
+        aboutLayout.addView(descView)
+
+        // 分隔线
+        val divider = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, 1.dp()
+            ).apply {
+                topMargin = 20.dp()
+                marginStart = 16.dp()
+                marginEnd = 16.dp()
+            }
+            setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.divider))
+        }
+        aboutLayout.addView(divider)
+
+        // 开源信息标题
+        val ossLabel = TextView(this).apply {
+            text = "开源地址"
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 16.dp() }
+        }
+        aboutLayout.addView(ossLabel)
+
+        // GitHub 链接（可点击）
+        val githubView = TextView(this).apply {
+            text = "github.com/youngDoo/sms_alert"
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary))
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 4.dp() }
+            setOnClickListener {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/youngDoo/sms_alert")))
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "无法打开浏览器", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        aboutLayout.addView(githubView)
+
+        // Star 邀请
+        val starView = TextView(this).apply {
+            text = "如果觉得好用，欢迎到 GitHub 点个 Star ⭐"
+            textSize = 12f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
+            gravity = android.view.Gravity.CENTER
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 12.dp() }
+        }
+        aboutLayout.addView(starView)
+
+        // 许可证
+        val licenseView = TextView(this).apply {
+            text = "MIT License"
+            textSize = 11f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 8.dp() }
+        }
+        aboutLayout.addView(licenseView)
+
+        // 版权
+        val copyrightView = TextView(this).apply {
+            text = "© 2026 推陈出新"
+            textSize = 11f
+            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).apply { topMargin = 20.dp() }
+        }
+        aboutLayout.addView(copyrightView)
+
+        AlertDialog.Builder(this)
+            .setView(aboutLayout)
+            .setPositiveButton("确定") { dialog, _ -> dialog.dismiss() }
             .show()
     }
 

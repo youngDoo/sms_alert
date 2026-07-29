@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 与联系人添加按钮完全一致的 TonalButton.Icon，供代码 inflate 使用 -->
+<com.google.android.material.button.MaterialButton xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.Material3.Button.TonalButton.Icon"
+    android:layout_width="wrap_content"
+    android:layout_height="40dp"
+    android:text="添加"
+    android:textSize="13sp"
+    app:icon="@android:drawable/ic_input_add"
+    app:iconSize="18dp" />
