@@ -36,7 +36,6 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode signing keystore
-        if: github.event_name != 'pull_request'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
