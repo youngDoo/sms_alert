@@ -21,10 +21,10 @@ jobs:
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: python3 -c "import os,base64; open('app/smsalert-release.jks','wb').write(base64.b64decode(os.environ['KEYSTORE_BASE64']))"
+        run: echo "$KEYSTORE_BASE64" | base64 -d > app/smsalert-release.jks
 
       - name: Verify keystore
-        run: ls -la app/smsalert-release.jks && file app/smsalert-release.jks
+        run: ls -la app/smsalert-release.jks && wc -c app/smsalert-release.jks
 
       - name: Grant execute permission to gradlew
         run: chmod +x ./gradlew
