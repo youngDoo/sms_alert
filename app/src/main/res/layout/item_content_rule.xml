@@ -7,7 +7,7 @@
     android:layout_marginVertical="4dp"
     app:cardCornerRadius="12dp"
     app:cardElevation="1dp"
-    app:cardBackgroundColor="@color/bg_surface"
+    app:cardBackgroundColor="?attr/colorSurface"
     app:strokeWidth="1dp"
     app:strokeColor="@color/divider">
 
@@ -25,7 +25,7 @@
             android:text="规"
             android:textSize="18sp"
             android:textStyle="bold"
-            android:textColor="@color/primary"
+            android:textColor="?attr/colorPrimary"
             android:background="@drawable/bg_avatar_circle"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent" />
@@ -38,7 +38,7 @@
             android:text="验证码"
             android:textSize="16sp"
             android:textStyle="bold"
-            android:textColor="@color/text_main"
+            android:textColor="?attr/colorOnSurface"
             android:layout_marginStart="12dp"
             app:layout_constraintTop_toTopOf="@id/tvRuleIcon"
             app:layout_constraintStart_toEndOf="@id/tvRuleIcon" />
@@ -50,7 +50,7 @@
             android:layout_height="wrap_content"
             android:text="验证码.*\\d{4,6}"
             android:textSize="13sp"
-            android:textColor="@color/text_secondary"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:layout_marginStart="12dp"
             app:layout_constraintTop_toBottomOf="@id/tvRuleName"
             app:layout_constraintStart_toEndOf="@id/tvRuleIcon" />
@@ -62,20 +62,20 @@
             android:layout_height="wrap_content"
             android:text="闹钟音"
             android:textSize="11sp"
-            android:textColor="@color/text_muted"
+            android:textColor="?attr/colorOnSurfaceVariant"
             android:layout_marginTop="6dp"
             app:layout_constraintTop_toBottomOf="@id/tvRuleIcon"
             app:layout_constraintStart_toStartOf="@id/tvRuleIcon" />
 
-        <!-- 删除按钮（与联系人卡片保持一致的 ImageButton + ic_menu_delete） -->
+        <!-- 删除按钮 -->
         <ImageButton
             android:id="@+id/btnDeleteRule"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:src="@android:drawable/ic_menu_delete"
+            android:src="@drawable/ic_delete"
             android:contentDescription="删除"
-            app:tint="@color/text_muted"
+            app:tint="?attr/colorOnSurfaceVariant"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent" />

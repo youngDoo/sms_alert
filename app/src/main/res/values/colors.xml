@@ -1,35 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- ========== 色彩系统 ========== -->
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-
-    <!-- 品牌蓝色系 -->
+    <!-- ========== 品牌色（Light Theme 默认） ========== -->
     <color name="primary">#FF2563EB</color>
     <color name="primary_dark">#FF1D4ED8</color>
     <color name="primary_light">#FFDBEAFE</color>
     <color name="primary_container">#FFEFF6FF</color>
 
-    <!-- 语义色 -->
+    <!-- MD3 Extended Color Roles（Dynamic Color 回退） -->
+    <color name="md_theme_light_primary">#FF2563EB</color>
+    <color name="md_theme_light_onPrimary">#FFFFFFFF</color>
+    <color name="md_theme_light_primaryContainer">#FFDBEAFE</color>
+    <color name="md_theme_light_onPrimaryContainer">#FF001B3E</color>
+    <color name="md_theme_light_secondary">#FF535F70</color>
+    <color name="md_theme_light_onSecondary">#FFFFFFFF</color>
+    <color name="md_theme_light_secondaryContainer">#FFD7E3F7</color>
+    <color name="md_theme_light_onSecondaryContainer">#FF101C2B</color>
+    <color name="md_theme_light_tertiary">#FF6B5778</color>
+    <color name="md_theme_light_onTertiary">#FFFFFFFF</color>
+    <color name="md_theme_light_tertiaryContainer">#FFF2DAFF</color>
+    <color name="md_theme_light_onTertiaryContainer">#FF251432</color>
+    <color name="md_theme_light_error">#FFBA1A1A</color>
+    <color name="md_theme_light_onError">#FFFFFFFF</color>
+    <color name="md_theme_light_surface">#FFF8FAFC</color>
+    <color name="md_theme_light_onSurface">#FF1A1C1E</color>
+    <color name="md_theme_light_surfaceVariant">#FFE0E2EC</color>
+    <color name="md_theme_light_onSurfaceVariant">#FF43474E</color>
+    <color name="md_theme_light_outline">#FF73777F</color>
+    <color name="md_theme_light_outlineVariant">#FFC3C6D0</color>
+
+    <!-- Dark Theme Colors -->
+    <color name="md_theme_dark_primary">#FFB3C5FF</color>
+    <color name="md_theme_dark_onPrimary">#FF002F65</color>
+    <color name="md_theme_dark_primaryContainer">#FF1A48B8</color>
+    <color name="md_theme_dark_onPrimaryContainer">#FFDBEAFE</color>
+    <color name="md_theme_dark_secondary">#FFBBC7DB</color>
+    <color name="md_theme_dark_onSecondary">#FF253140</color>
+    <color name="md_theme_dark_secondaryContainer">#FF3B4858</color>
+    <color name="md_theme_dark_onSecondaryContainer">#FFD7E3F7</color>
+    <color name="md_theme_dark_tertiary">#FFD6BEE4</color>
+    <color name="md_theme_dark_onTertiary">#FF3B2948</color>
+    <color name="md_theme_dark_tertiaryContainer">#FF523F5F</color>
+    <color name="md_theme_dark_onTertiaryContainer">#FFF2DAFF</color>
+    <color name="md_theme_dark_error">#FFFFB4AB</color>
+    <color name="md_theme_dark_onError">#FF690005</color>
+    <color name="md_theme_dark_surface">#FF111318</color>
+    <color name="md_theme_dark_onSurface">#FFE2E2E6</color>
+    <color name="md_theme_dark_surfaceVariant">#FF43474E</color>
+    <color name="md_theme_dark_onSurfaceVariant">#FFC3C6D0</color>
+    <color name="md_theme_dark_outline">#FF8D9199</color>
+    <color name="md_theme_dark_outlineVariant">#FF43474E</color>
+
+    <!-- 语义色（跨主题统一） -->
     <color name="success">#FF16A34A</color>
     <color name="success_bg">#FFDCFCE7</color>
+    <color name="success_bg_dark">#FF1A3A2A</color>
     <color name="warning">#FFF59E0B</color>
     <color name="warning_bg">#FFFEF3C7</color>
     <color name="error">#FFDC2626</color>
     <color name="error_bg">#FFFEE2E2</color>
+    <color name="error_bg_dark">#FF3A1A1A</color>
 
     <!-- 背景与表面 -->
     <color name="bg_light">#FFF8FAFC</color>
     <color name="bg_surface">#FFFFFFFF</color>
     <color name="bg_surface_variant">#FFF1F5F9</color>
+    <color name="bg_dark">#FF111318</color>
+    <color name="bg_surface_dark">#FF1C1E23</color>
 
     <!-- 文字 -->
     <color name="text_main">#FF0F172A</color>
     <color name="text_secondary">#FF475569</color>
     <color name="text_muted">#FF94A3B8</color>
     <color name="text_on_primary">#FFFFFFFF</color>
+    <color name="text_main_dark">#FFE2E8F0</color>
+    <color name="text_secondary_dark">#FF94A3B8</color>
+    <color name="text_muted_dark">#FF64748B</color>
 
     <!-- 分割线 / 边框 -->
     <color name="divider">#FFE2E8F0</color>
+    <color name="divider_dark">#FF2D3748</color>
 
     <!-- 保留旧名称兼容 -->
     <color name="card_bg">@color/bg_surface</color>

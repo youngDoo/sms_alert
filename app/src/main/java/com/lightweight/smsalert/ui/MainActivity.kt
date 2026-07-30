@@ -3,6 +3,7 @@ package com.lightweight.smsalert.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -13,19 +14,17 @@ import android.provider.ContactsContract
 import android.provider.Settings
 import android.util.Log
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.ArrayAdapter
 import android.widget.EditText
-import android.widget.ImageButton
-import android.widget.LinearLayout
+import android.widget.ImageView
 import android.widget.Spinner
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.DefaultItemAnimator
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.lightweight.smsalert.R
 import com.lightweight.smsalert.data.PrefsManager
@@ -46,7 +45,15 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
     private lateinit var prefsManager: PrefsManager
-    private var lastResumeAlertMs = 0L  // 防抖：onResume 恢复弹窗的最小间隔
+    private var lastResumeAlertMs = 0L
+
+    // Adapter 缓存（性能：避免每次 onResume 重建）
+    private lateinit var contactAdapter: ContactAdapter
+    private lateinit var contentRuleAdapter: ContentRuleAdapter
+
+    // Ringtone spinner 适配器缓存（性能：避免每次打开对话框重建）
+    private val ringtoneOptions = arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音")
+    private lateinit var ringtoneAdapter: ArrayAdapter<String>
 
     private val contactPickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -57,17 +64,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ─── 生命周期 ─────────────────────────────────────────────────
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Edge-to-Edge：内容延伸到系统栏区域（挖孔屏/刘海屏适配）
         setSupportActionBar(binding.toolbar)
 
         prefsManager = PrefsManager(this)
+        ringtoneAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
-        setupRecyclerView()
+        setupRecyclerViews()
         setupUI()
         checkAndRequestFirstLaunchPermissions()
     }
@@ -89,15 +100,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun setupRecyclerView() {
-        binding.rvContacts.layoutManager = LinearLayoutManager(this)
-        contactAdapter = ContactAdapter(emptyList()) { contact ->
+    // ─── RecyclerView 初始化 ───────────────────────────────────────
+
+    private fun setupRecyclerViews() {
+        // 联系人列表：ListAdapter + DiffUtil + 逐条动画
+        contactAdapter = ContactAdapter { contact ->
             showDeleteConfirmation(contact)
         }
-        binding.rvContacts.adapter = contactAdapter
+        binding.rvContacts.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = contactAdapter
+            itemAnimator = DefaultItemAnimator().apply {
+                addDuration = 200
+                removeDuration = 200
+            }
+        }
+
+        // 内容规则列表：ListAdapter + DiffUtil
+        contentRuleAdapter = ContentRuleAdapter { rule ->
+            prefsManager.removeContentRule(rule.id)
+            refreshContentRules()
+        }
+        binding.rvContentRules.apply {
+            layoutManager = LinearLayoutManager(this@MainActivity)
+            adapter = contentRuleAdapter
+            itemAnimator = DefaultItemAnimator().apply {
+                addDuration = 200
+                removeDuration = 200
+            }
+        }
     }
 
-    private lateinit var contactAdapter: ContactAdapter
+    // ─── UI 绑定 ──────────────────────────────────────────────────
 
     private fun setupUI() {
         // 主开关
@@ -110,7 +144,7 @@ class MainActivity : AppCompatActivity() {
             if (isChecked) {
                 if (hasSmsPermissions()) {
                     prefsManager.isListenerEnabled = true
-                    binding.layoutSubSwitches.visibility = View.VISIBLE
+                    animateSubSwitches(true)
                     applySubSwitchStates()
                     Toast.makeText(this, "短信监听服务已启用", Toast.LENGTH_SHORT).show()
                 } else {
@@ -120,7 +154,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 prefsManager.isListenerEnabled = false
-                binding.layoutSubSwitches.visibility = View.GONE
+                animateSubSwitches(false)
                 SmsReceiver.unregisterDynamic(this)
                 SmsBackupJobService.cancel(this)
                 Toast.makeText(this, "短信监听服务已关闭", Toast.LENGTH_SHORT).show()
@@ -145,12 +179,12 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 手动添加按钮
+        // 手动添加联系人
         binding.btnAddContact.setOnClickListener {
             showAddEditContactDialog(null, null)
         }
 
-        // 通讯录导入 FAB
+        // 通讯录导入
         binding.btnImportContact.setOnClickListener {
             try {
                 val intent = Intent(Intent.ACTION_PICK, ContactsContract.CommonDataKinds.Phone.CONTENT_URI)
@@ -160,19 +194,48 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // 权限卡片整体点击 → 去设置（始终可点击，已授权也能进去查看）
+        // 添加内容规则
+        binding.btnAddContentRule.setOnClickListener {
+            showAddContentRuleDialog()
+        }
+
+        // 权限卡片整体点击 → 去设置
         binding.cardPermissions.setOnClickListener {
             jumpToSettings()
         }
 
-        // 电池优化行点击 → 跳转后台高耗电设置（始终可点击）
+        // 电池优化行点击 → 跳转后台高耗电设置
         binding.layoutBatteryOpt.setOnClickListener {
             jumpToBatterySettings()
         }
 
-        // 后台弹出界面行点击 → 跳转系统设置（Vivo 专属）
+        // 后台弹出界面行点击（Vivo 专属）
         binding.layoutBgPopup.setOnClickListener {
             jumpToSettings()
+        }
+    }
+
+    // ─── 子开关展开/收起动画 ─────────────────────────────────────
+
+    private fun animateSubSwitches(expand: Boolean) {
+        if (expand) {
+            binding.layoutSubSwitches.apply {
+                alpha = 0f
+                translationY = -20f
+                visibility = View.VISIBLE
+                animate()
+                    .alpha(1f)
+                    .translationY(0f)
+                    .setDuration(250)
+                    .start()
+            }
+        } else {
+            binding.layoutSubSwitches.animate()
+                .alpha(0f)
+                .translationY(-20f)
+                .setDuration(200)
+                .withEndAction { binding.layoutSubSwitches.visibility = View.GONE }
+                .start()
         }
     }
 
@@ -197,12 +260,12 @@ class MainActivity : AppCompatActivity() {
 
     // ─── 工具栏菜单 ────────────────────────────────────────────────
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+    override fun onCreateOptionsMenu(menu: android.view.Menu): Boolean {
         menuInflater.inflate(R.menu.toolbar_menu, menu)
         return true
     }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+    override fun onOptionsItemSelected(item: android.view.MenuItem): Boolean {
         return when (item.itemId) {
             R.id.action_about -> {
                 showAboutDialog()
@@ -232,77 +295,50 @@ class MainActivity : AppCompatActivity() {
         } else true
     }
 
-    /** Vivo/BBK 设备检测：这些设备需要在设置中额外开启「后台弹出界面」权限 */
     private fun isVivoOrBbk(): Boolean {
         val mfr = Build.MANUFACTURER.lowercase()
         return mfr == "vivo" || mfr == "bbk"
     }
 
-    private fun updatePermissionStatus() {
-        // 短信权限
-        if (hasSmsPermissions()) {
-            binding.ivSmsStatus.setImageResource(android.R.drawable.presence_online)
-            binding.ivSmsStatus.setColorFilter(ContextCompat.getColor(this, R.color.success))
-            binding.chipSmsStatus.text = "已授权"
-            binding.chipSmsStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
-            binding.chipSmsStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
+    /** DRY 权限状态行更新：只切 3 个 View 的状态 */
+    private fun updatePermissionRow(
+        iconView: ImageView,
+        chipView: TextView,
+        isGranted: Boolean,
+        grantedText: String = "已授权",
+        deniedText: String = "未授权"
+    ) {
+        if (isGranted) {
+            iconView.setImageResource(R.drawable.ic_status_ok)
+            chipView.text = grantedText
+            chipView.setTextColor(ContextCompat.getColor(this, R.color.success))
+            chipView.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
         } else {
-            binding.ivSmsStatus.setImageResource(android.R.drawable.presence_offline)
-            binding.ivSmsStatus.setColorFilter(ContextCompat.getColor(this, R.color.error))
-            binding.chipSmsStatus.text = "未授权"
-            binding.chipSmsStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
-            binding.chipSmsStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
-        }
-
-        // 通知权限
-        if (hasNotificationPermission()) {
-            binding.ivNotifyStatus.setImageResource(android.R.drawable.presence_online)
-            binding.ivNotifyStatus.setColorFilter(ContextCompat.getColor(this, R.color.success))
-            binding.chipNotifyStatus.text = "已授权"
-            binding.chipNotifyStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
-            binding.chipNotifyStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
-        } else {
-            binding.ivNotifyStatus.setImageResource(android.R.drawable.presence_offline)
-            binding.ivNotifyStatus.setColorFilter(ContextCompat.getColor(this, R.color.error))
-            binding.chipNotifyStatus.text = "未授权"
-            binding.chipNotifyStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
-            binding.chipNotifyStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
-        }
-
-        // 电池优化（后台高耗电）
-        if (isIgnoringBatteryOptimizations()) {
-            binding.ivBatteryStatus.setImageResource(android.R.drawable.presence_online)
-            binding.ivBatteryStatus.setColorFilter(ContextCompat.getColor(this, R.color.success))
-            binding.chipBatteryStatus.text = "已授权"
-            binding.chipBatteryStatus.setTextColor(ContextCompat.getColor(this, R.color.success))
-            binding.chipBatteryStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_success)
-        } else {
-            binding.ivBatteryStatus.setImageResource(android.R.drawable.presence_offline)
-            binding.ivBatteryStatus.setColorFilter(ContextCompat.getColor(this, R.color.error))
-            binding.chipBatteryStatus.text = "未授权"
-            binding.chipBatteryStatus.setTextColor(ContextCompat.getColor(this, R.color.error))
-            binding.chipBatteryStatus.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
-        }
-
-        // 后台弹出界面（Vivo/BBK 专属，无法用 API 检测 → 仅显示引导入口，不显示假状态）
-        if (isVivoOrBbk()) {
-            binding.layoutBgPopup.visibility = View.VISIBLE
-        } else {
-            binding.layoutBgPopup.visibility = View.GONE
+            iconView.setImageResource(R.drawable.ic_status_error)
+            chipView.text = deniedText
+            chipView.setTextColor(ContextCompat.getColor(this, R.color.error))
+            chipView.background = ContextCompat.getDrawable(this, R.drawable.bg_chip_error)
         }
     }
+
+    private fun updatePermissionStatus() {
+        updatePermissionRow(binding.ivSmsStatus, binding.chipSmsStatus, hasSmsPermissions())
+        updatePermissionRow(binding.ivNotifyStatus, binding.chipNotifyStatus, hasNotificationPermission())
+        updatePermissionRow(binding.ivBatteryStatus, binding.chipBatteryStatus, isIgnoringBatteryOptimizations())
+
+        // 后台弹出界面（Vivo/BBK 专属）
+        binding.layoutBgPopup.visibility = if (isVivoOrBbk()) View.VISIBLE else View.GONE
+    }
+
+    // ─── 联系人列表 ────────────────────────────────────────────────
 
     private fun refreshContactList() {
         val contacts = prefsManager.getContacts()
         binding.tvContactCount.text = "${contacts.size}人"
-        if (contacts.isEmpty()) {
-            binding.tvNoContacts.visibility = View.VISIBLE
-            binding.rvContacts.visibility = View.GONE
-        } else {
-            binding.tvNoContacts.visibility = View.GONE
-            binding.rvContacts.visibility = View.VISIBLE
-            contactAdapter.updateContacts(contacts)
-        }
+        val isEmpty = contacts.isEmpty()
+        binding.tvNoContacts.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        binding.rvContacts.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        contactAdapter.submitList(contacts)
     }
 
     @SuppressLint("Range")
@@ -327,14 +363,12 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // ─── 联系人对话框 ──────────────────────────────────────────────
+
     private fun showAddEditContactDialog(prefilledName: String?, prefilledPhone: String?) {
         val dialogBinding = DialogContactEditBinding.inflate(layoutInflater)
         prefilledName?.let { dialogBinding.etName.setText(it) }
         prefilledPhone?.let { dialogBinding.etPhone.setText(it) }
-
-        val ringtoneOptions = arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音")
-        val ringtoneAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions)
-        ringtoneAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
         dialogBinding.spinnerRingtone.adapter = ringtoneAdapter
 
         AlertDialog.Builder(this)
@@ -357,7 +391,7 @@ class MainActivity : AppCompatActivity() {
                     name = name,
                     phoneNumber = phone,
                     ringtoneUri = ringtoneValue,
-                    repeatIntervalSec = 30  // 保留字段向后兼容，当前行为：响铃无限循环直到手动停止
+                    repeatIntervalSec = 30
                 )
                 prefsManager.addContact(newContact)
                 refreshContactList()
@@ -379,6 +413,81 @@ class MainActivity : AppCompatActivity() {
             .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
             .show()
     }
+
+    // ─── 内容规则 ──────────────────────────────────────────────────
+
+    private fun refreshContentRules() {
+        val rules = prefsManager.getContentRules()
+        binding.tvContentRuleCount.text = "${rules.size}条"
+        val isEmpty = rules.isEmpty()
+        binding.tvNoContentRules.visibility = if (isEmpty) View.VISIBLE else View.GONE
+        binding.rvContentRules.visibility = if (isEmpty) View.GONE else View.VISIBLE
+        contentRuleAdapter.submitList(rules)
+    }
+
+    private fun showAddContentRuleDialog() {
+        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_content_rule_edit, null)
+        val etName = dialogView.findViewById<EditText>(R.id.etRuleName)
+        val etPattern = dialogView.findViewById<EditText>(R.id.etRulePattern)
+        val spinnerRingtone = dialogView.findViewById<Spinner>(R.id.spinnerRingtone)
+        spinnerRingtone.adapter = ringtoneAdapter
+
+        AlertDialog.Builder(this)
+            .setTitle("添加内容规则")
+            .setView(dialogView)
+            .setPositiveButton("保存") { dialog, _ ->
+                val name = etName.text.toString().trim()
+                val pattern = etPattern.text.toString().trim()
+                if (name.isEmpty() || pattern.isEmpty()) {
+                    Toast.makeText(this, "名称和正则表达式不能为空", Toast.LENGTH_SHORT).show()
+                    return@setPositiveButton
+                }
+                val ringtone = when (spinnerRingtone.selectedItemPosition) {
+                    0 -> "alarm"; 1 -> "ringtone"; 2 -> "notification"; else -> "alarm"
+                }
+                prefsManager.addContentRule(ContentRule(
+                    id = UUID.randomUUID().toString(), name = name, pattern = pattern,
+                    ringtoneUri = ringtone, repeatIntervalSec = 30
+                ))
+                refreshContentRules()
+                dialog.dismiss()
+            }
+            .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    // ─── 关于对话框 ────────────────────────────────────────────────
+
+    private fun showAboutDialog() {
+        val aboutView = LayoutInflater.from(this).inflate(R.layout.dialog_about, null)
+
+        // 设置版本号
+        val versionName = try {
+            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.0"
+        } catch (e: PackageManager.NameNotFoundException) {
+            "1.0.0"
+        }
+        aboutView.findViewById<TextView>(R.id.tvAboutAppName).text = "短信钉  $versionName"
+
+        // GitHub 链接可点击
+        aboutView.findViewById<TextView>(R.id.tvAboutGithub).apply {
+            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
+            setOnClickListener {
+                try {
+                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/youngDoo/sms_alert")))
+                } catch (e: Exception) {
+                    Toast.makeText(this@MainActivity, "无法打开浏览器", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+
+        AlertDialog.Builder(this)
+            .setView(aboutView)
+            .setPositiveButton("确定") { dialog, _ -> dialog.dismiss() }
+            .show()
+    }
+
+    // ─── 跳转系统设置 ──────────────────────────────────────────────
 
     private fun jumpToSettings() {
         try {
@@ -409,256 +518,4 @@ class MainActivity : AppCompatActivity() {
             jumpToSettings()
         }
     }
-
-    // ─── 内容规则 ──────────────────────────────────────────────────
-
-    private var contentRulesContainer: LinearLayout? = null
-
-    private fun refreshContentRules() {
-        val rules = prefsManager.getContentRules()
-        contentRulesContainer?.removeAllViews()
-
-        val parent = binding.rvContacts.parent as? LinearLayout ?: return
-        contentRulesContainer?.let { parent.removeView(it) }
-
-        // 容器
-        val container = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 16.dp() }
-            setPadding(0, 8.dp(), 0, 0)
-        }
-
-        // 标题行（与联系人标题行保持一致）
-        val header = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
-        }
-        val title = TextView(this).apply {
-            text = "内容规则"
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_main))
-            textSize = 17f
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-        }
-        val count = TextView(this).apply {
-            text = "${rules.size}条"
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
-            textSize = 12f
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { marginEnd = 12.dp() }
-        }
-        // ★ 添加按钮：inflate XML 布局，与联系人按钮 100% 一致的 TonalButton.Icon 样式
-        val addBtn = LayoutInflater.from(this).inflate(
-            R.layout.btn_add_tonal, container, false
-        ) as com.google.android.material.button.MaterialButton
-        addBtn.setOnClickListener { showAddContentRuleDialog() }
-        header.addView(title)
-        header.addView(count)
-        header.addView(addBtn)
-        container.addView(header)
-
-        // ★ 规则列表：使用 item_content_rule.xml 卡片布局，与联系人卡片风格统一
-        for (rule in rules) {
-            val itemView = LayoutInflater.from(this).inflate(R.layout.item_content_rule, container, false)
-            val tvIcon = itemView.findViewById<TextView>(R.id.tvRuleIcon)
-            val tvName = itemView.findViewById<TextView>(R.id.tvRuleName)
-            val tvPattern = itemView.findViewById<TextView>(R.id.tvRulePattern)
-            val tvRingtone = itemView.findViewById<TextView>(R.id.tvRuleRingtone)
-            val btnDelete = itemView.findViewById<ImageButton>(R.id.btnDeleteRule)
-
-            tvIcon.text = rule.name.firstOrNull()?.toString() ?: "规"
-            tvName.text = rule.name
-            tvPattern.text = rule.pattern
-            tvRingtone.text = when (rule.ringtoneUri) {
-                "alarm" -> "闹钟音"
-                "ringtone" -> "电话铃"
-                "notification" -> "提示音"
-                else -> "系统默认"
-            }
-            btnDelete.setOnClickListener {
-                prefsManager.removeContentRule(rule.id)
-                refreshContentRules()
-            }
-            container.addView(itemView)
-        }
-
-        parent.addView(container)
-        contentRulesContainer = container
-    }
-
-    private fun showAddContentRuleDialog() {
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_content_rule_edit, null)
-        val etName = dialogView.findViewById<EditText>(R.id.etRuleName)
-        val etPattern = dialogView.findViewById<EditText>(R.id.etRulePattern)
-        val spinnerRingtone = dialogView.findViewById<Spinner>(R.id.spinnerRingtone)
-
-        val ringtoneOptions = arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音")
-        val ringtoneAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions)
-        ringtoneAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        spinnerRingtone.adapter = ringtoneAdapter
-
-        AlertDialog.Builder(this)
-            .setTitle("添加内容规则")
-            .setView(dialogView)
-            .setPositiveButton("保存") { dialog, _ ->
-                val name = etName.text.toString().trim()
-                val pattern = etPattern.text.toString().trim()
-                if (name.isEmpty() || pattern.isEmpty()) {
-                    Toast.makeText(this, "名称和正则表达式不能为空", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
-                }
-                val ringtone = when (spinnerRingtone.selectedItemPosition) {
-                    0 -> "alarm"; 1 -> "ringtone"; 2 -> "notification"; else -> "alarm"
-                }
-                prefsManager.addContentRule(ContentRule(
-                    id = UUID.randomUUID().toString(), name = name, pattern = pattern,
-                    ringtoneUri = ringtone, repeatIntervalSec = 30
-                ))
-                refreshContentRules()
-                dialog.dismiss()
-            }
-            .setNegativeButton("取消") { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-
-    // ─── 关于 ──────────────────────────────────────────────────────
-
-    private fun showAboutDialog() {
-        val versionName = try {
-            packageManager.getPackageInfo(packageName, 0).versionName ?: "1.0.0"
-        } catch (e: PackageManager.NameNotFoundException) {
-            "1.0.0"
-        }
-
-        val aboutLayout = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = android.view.Gravity.CENTER_HORIZONTAL
-            setPadding(48.dp(), 32.dp(), 48.dp(), 16.dp())
-        }
-
-        // 应用图标
-        val iconView = TextView(this).apply {
-            text = "钉"
-            textSize = 32f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            gravity = android.view.Gravity.CENTER
-            width = 72.dp()
-            height = 72.dp()
-            background = ContextCompat.getDrawable(this@MainActivity, R.drawable.bg_avatar_circle)
-        }
-        aboutLayout.addView(iconView)
-
-        // 应用名 + 版本
-        val nameView = TextView(this).apply {
-            text = "短信钉  $versionName"
-            textSize = 18f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_main))
-            setTypeface(null, android.graphics.Typeface.BOLD)
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 16.dp() }
-        }
-        aboutLayout.addView(nameView)
-
-        // 描述
-        val descView = TextView(this).apply {
-            text = "零后台 · 不耗电\n特别关注短信提醒工具"
-            textSize = 13f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-            gravity = android.view.Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 12.dp() }
-            setLineSpacing(4.dp().toFloat(), 1.0f)
-        }
-        aboutLayout.addView(descView)
-
-        // 分隔线
-        val divider = View(this).apply {
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, 1.dp()
-            ).apply {
-                topMargin = 20.dp()
-                marginStart = 16.dp()
-                marginEnd = 16.dp()
-            }
-            setBackgroundColor(ContextCompat.getColor(this@MainActivity, R.color.divider))
-        }
-        aboutLayout.addView(divider)
-
-        // 开源信息标题
-        val ossLabel = TextView(this).apply {
-            text = "开源地址"
-            textSize = 13f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 16.dp() }
-        }
-        aboutLayout.addView(ossLabel)
-
-        // GitHub 链接（可点击）
-        val githubView = TextView(this).apply {
-            text = "github.com/youngDoo/sms_alert"
-            textSize = 13f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.primary))
-            paintFlags = paintFlags or android.graphics.Paint.UNDERLINE_TEXT_FLAG
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 4.dp() }
-            setOnClickListener {
-                try {
-                    startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/youngDoo/sms_alert")))
-                } catch (e: Exception) {
-                    Toast.makeText(this@MainActivity, "无法打开浏览器", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        aboutLayout.addView(githubView)
-
-        // Star 邀请
-        val starView = TextView(this).apply {
-            text = "如果觉得好用，欢迎到 GitHub 点个 Star ⭐"
-            textSize = 12f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_secondary))
-            gravity = android.view.Gravity.CENTER
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 12.dp() }
-        }
-        aboutLayout.addView(starView)
-
-        // 许可证
-        val licenseView = TextView(this).apply {
-            text = "MIT License"
-            textSize = 11f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 8.dp() }
-        }
-        aboutLayout.addView(licenseView)
-
-        // 版权
-        val copyrightView = TextView(this).apply {
-            text = "© 2026 推陈出新"
-            textSize = 11f
-            setTextColor(ContextCompat.getColor(this@MainActivity, R.color.text_muted))
-            layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT
-            ).apply { topMargin = 20.dp() }
-        }
-        aboutLayout.addView(copyrightView)
-
-        AlertDialog.Builder(this)
-            .setView(aboutLayout)
-            .setPositiveButton("确定") { dialog, _ -> dialog.dismiss() }
-            .show()
-    }
-
-    private fun Int.dp(): Int = (this * resources.displayMetrics.density).toInt()
 }

@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center_horizontal"
+    android:padding="32dp">
+
+    <!-- 应用图标 -->
+    <TextView
+        android:id="@+id/tvAboutIcon"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:gravity="center"
+        android:text="钉"
+        android:textSize="32sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorPrimary"
+        android:background="@drawable/bg_avatar_circle" />
+
+    <!-- 应用名 + 版本 -->
+    <TextView
+        android:id="@+id/tvAboutAppName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="短信钉"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        android:textColor="?attr/colorOnSurface"
+        android:layout_marginTop="16dp" />
+
+    <!-- 描述 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="零后台 · 不耗电\n特别关注短信提醒工具"
+        android:textSize="14sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:layout_marginTop="12dp" />
+
+    <!-- 分隔线 -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/divider"
+        android:layout_marginTop="20dp"
+        android:layout_marginHorizontal="16dp" />
+
+    <!-- 开源信息标题 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="开源地址"
+        android:textSize="13sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginTop="16dp" />
+
+    <!-- GitHub 链接 -->
+    <TextView
+        android:id="@+id/tvAboutGithub"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="github.com/youngDoo/sms_alert"
+        android:textSize="13sp"
+        android:textColor="?attr/colorPrimary"
+        android:layout_marginTop="4dp" />
+
+    <!-- Star 邀请 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="如果觉得好用，欢迎到 GitHub 点个 Star ⭐"
+        android:textSize="12sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginTop="12dp" />
+
+    <!-- 许可证 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="MIT License"
+        android:textSize="11sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginTop="8dp" />
+
+    <!-- 版权 -->
+    <TextView
+        android:id="@+id/tvAboutCopyright"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="© 2026 推陈出新"
+        android:textSize="11sp"
+        android:textColor="?attr/colorOnSurfaceVariant"
+        android:layout_marginTop="20dp" />
+
+</LinearLayout>

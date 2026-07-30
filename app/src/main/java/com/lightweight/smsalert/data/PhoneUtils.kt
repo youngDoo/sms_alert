@@ -20,7 +20,8 @@ object PhoneUtils {
 
     /**
      * 判断两个号码是否相同（归一化后精确匹配 + 后缀兜底匹配）
-     * 后缀匹配用于处理运营商可能添加前导 0 的场景
+     * 原则：宁可多警报，不能漏警报
+     * 后缀匹配用于处理运营商可能添加前导 0/区号/国际前缀等场景
      */
     fun isSame(p1: String, p2: String): Boolean {
         val n1 = normalize(p1)

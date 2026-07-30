@@ -95,8 +95,8 @@ class PhoneUtilsTest {
 
     @Test
     fun `isSame short suffix false positive - known loose behavior`() {
-        // 后缀匹配过于宽松：10086 vs 86 会被判为相同
-        // 这是已知问题，对 11 位手机号影响很小
+        // 后缀匹配宽松：10086 vs 86 会被判为相同
+        // 原则：宁可多警报不能漏警报，接受此行为
         assertTrue(PhoneUtils.isSame("10086", "86"))
     }
 
