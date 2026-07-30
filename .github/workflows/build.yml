@@ -67,36 +67,29 @@ jobs:
             ./gradlew :app:assembleDebug
           fi
 
-      - name: Rename APK
+      - name: Collect APK
         run: |
           VERSION=$(grep -oP 'versionName\s+"\K[^"]+' app/build.gradle)
           echo "App version: $VERSION"
+          mkdir -p dist
           if ls app/build/outputs/apk/release/*.apk >/dev/null 2>&1; then
-            for apk in app/build/outputs/apk/release/*.apk; do
-              [ -f "$apk" ] && mv "$apk" "$(dirname "$apk")/SmsAlertTool-${VERSION}-release.apk" && echo "→ SmsAlertTool-${VERSION}-release.apk"
-            done
+            cp app/build/outputs/apk/release/*.apk "dist/SmsAlertTool-${VERSION}-release.apk"
+            echo "→ dist/SmsAlertTool-${VERSION}-release.apk"
           elif ls app/build/outputs/apk/debug/*.apk >/dev/null 2>&1; then
-            for apk in app/build/outputs/apk/debug/*.apk; do
-              [ -f "$apk" ] && mv "$apk" "$(dirname "$apk")/SmsAlertTool-${VERSION}-debug.apk" && echo "→ SmsAlertTool-${VERSION}-debug.apk"
-            done
+            cp app/build/outputs/apk/debug/*.apk "dist/SmsAlertTool-${VERSION}-debug.apk"
+            echo "→ dist/SmsAlertTool-${VERSION}-debug.apk"
           fi
-
-      - name: Verify APK
-        run: |
-          ls -lh app/build/outputs/apk/release/ app/build/outputs/apk/debug/ 2>/dev/null || true
+          ls -lh dist/
 
       - name: Compute artifact name
         id: artifact
-        # PR ref_name 含 / (如 1/merge)，替换为 - 以符合 artifact 命名规范
         run: echo "name=SmsAlertTool-$(echo '${{ github.ref_name }}' | tr '/' '-')" >> $GITHUB_OUTPUT
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.artifact.outputs.name }}
-          path: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/apk/debug/*.apk
+          path: dist/*.apk
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -115,7 +108,7 @@ jobs:
         run: |
           echo "Artifact contents:"
           ls -laR dist/
-          if ! find dist/ -name "*.apk" | grep -q .; then
+          if ! ls dist/*.apk >/dev/null 2>&1; then
             echo "ERROR: No APK found in artifact"
             exit 1
           fi
@@ -123,5 +116,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/**/*.apk
+          files: dist/*.apk
           generate_release_notes: true
