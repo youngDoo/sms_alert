@@ -21,10 +21,15 @@ jobs:
       - name: Decode keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: echo "$KEYSTORE_BASE64" | base64 -d > app/smsalert-release.jks
-
-      - name: Verify keystore
-        run: ls -la app/smsalert-release.jks && wc -c app/smsalert-release.jks
+        run: |
+          set -e
+          echo "Secret length: ${#KEYSTORE_BASE64} chars (expect 3004)"
+          echo "$KEYSTORE_BASE64" | base64 -d > app/smsalert-release.jks
+          if [ ! -s app/smsalert-release.jks ]; then
+            echo "ERROR: Decoded file is empty — is KEYSTORE_BASE64 secret set?"
+            exit 1
+          fi
+          ls -la app/smsalert-release.jks
 
       - name: Grant execute permission to gradlew
         run: chmod +x ./gradlew
