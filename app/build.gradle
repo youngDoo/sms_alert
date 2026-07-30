@@ -25,11 +25,15 @@ android {
         }
     }
 
+    // CI 环境无 keystore 时回退到 debug 签名
+    def useReleaseSigning = file("app/smsalert-release.jks").exists() ||
+        project.hasProperty("ci") && System.getenv("KEYSTORE_PASSWORD") != null && !System.getenv("KEYSTORE_PASSWORD").empty
+
     buildTypes {
         release {
-            signingConfig signingConfigs.release
-            minifyEnabled = true
-            shrinkResources = true
+            signingConfig useReleaseSigning ? signingConfigs.release : signingConfigs.debug
+            minifyEnabled = useReleaseSigning
+            shrinkResources = useReleaseSigning
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
