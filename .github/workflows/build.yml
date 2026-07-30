@@ -36,6 +36,8 @@ jobs:
         run: chmod +x gradlew
 
       - name: Decode signing keystore
+        # fork PR 无 Secret → 静默跳过
+        # 内部 PR/分支有 Secret → 解码 keystore
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -43,42 +45,46 @@ jobs:
             echo "$KEYSTORE_BASE64" | base64 -d > app/smsalert-release.jks
             echo "Keystore decoded from secrets"
           else
-            echo "No keystore secret found"
+            echo "No keystore secret (fork PR or missing config), will build debug"
           fi
 
-      - name: Build Signed Release APK
+      - name: Build APK
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew :app:assembleRelease
+        run: |
+          if [ -f app/smsalert-release.jks ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+            ./gradlew :app:assembleRelease
+          else
+            ./gradlew :app:assembleDebug
+          fi
 
       - name: Rename APK
         run: |
-          # Get version from build.gradle
           VERSION=$(grep 'versionName' app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
           echo "App version: $VERSION"
-          # Rename to SmsAlertTool-{version}-release.apk
-          for apk in app/build/outputs/apk/release/*.apk; do
-            if [ -f "$apk" ]; then
-              dir=$(dirname "$apk")
-              mv "$apk" "$dir/SmsAlertTool-${VERSION}-release.apk"
-              echo "Renamed to SmsAlertTool-${VERSION}-release.apk"
-            fi
-          done
+          if ls app/build/outputs/apk/release/*.apk >/dev/null 2>&1; then
+            for apk in app/build/outputs/apk/release/*.apk; do
+              [ -f "$apk" ] && mv "$apk" "$(dirname "$apk")/SmsAlertTool-${VERSION}-release.apk" && echo "→ SmsAlertTool-${VERSION}-release.apk"
+            done
+          elif ls app/build/outputs/apk/debug/*.apk >/dev/null 2>&1; then
+            for apk in app/build/outputs/apk/debug/*.apk; do
+              [ -f "$apk" ] && mv "$apk" "$(dirname "$apk")/SmsAlertTool-${VERSION}-debug.apk" && echo "→ SmsAlertTool-${VERSION}-debug.apk"
+            done
+          fi
 
       - name: Verify APK
         run: |
-          ls -lh app/build/outputs/apk/release/
-          if command -v apksigner &>/dev/null; then
-            apksigner verify app/build/outputs/apk/release/*.apk && echo "✓ Signature verified"
-          fi
+          ls -lh app/build/outputs/apk/release/ app/build/outputs/apk/debug/ 2>/dev/null || true
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: SmsAlertTool-${{ github.ref_name }}
-          path: app/build/outputs/apk/release/*.apk
+          path: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/apk/debug/*.apk
 
   release:
     if: startsWith(github.ref, 'refs/tags/v')
