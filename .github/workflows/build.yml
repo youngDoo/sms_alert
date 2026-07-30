@@ -115,7 +115,7 @@ jobs:
         run: |
           echo "Artifact contents:"
           ls -laR dist/
-          if ! ls dist/*.apk >/dev/null 2>&1; then
+          if ! find dist/ -name "*.apk" | grep -q .; then
             echo "ERROR: No APK found in artifact"
             exit 1
           fi
@@ -123,5 +123,5 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*.apk
+          files: dist/**/*.apk
           generate_release_notes: true
