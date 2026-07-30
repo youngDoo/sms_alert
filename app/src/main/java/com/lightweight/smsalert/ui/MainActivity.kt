@@ -3,7 +3,6 @@ package com.lightweight.smsalert.ui
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlertDialog
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -51,9 +50,8 @@ class MainActivity : AppCompatActivity() {
     private lateinit var contactAdapter: ContactAdapter
     private lateinit var contentRuleAdapter: ContentRuleAdapter
 
-    // Ringtone spinner 适配器缓存（性能：避免每次打开对话框重建）
+    // Ringtone spinner 选项（每次 Dialog 独立创建 adapter 避免状态冲突）
     private val ringtoneOptions = arrayOf("系统默认闹钟音", "系统默认电话铃声", "系统默认提示音")
-    private lateinit var ringtoneAdapter: ArrayAdapter<String>
 
     private val contactPickerLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -74,9 +72,6 @@ class MainActivity : AppCompatActivity() {
         setSupportActionBar(binding.toolbar)
 
         prefsManager = PrefsManager(this)
-        ringtoneAdapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions).apply {
-            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
-        }
 
         setupRecyclerViews()
         setupUI()
@@ -369,7 +364,9 @@ class MainActivity : AppCompatActivity() {
         val dialogBinding = DialogContactEditBinding.inflate(layoutInflater)
         prefilledName?.let { dialogBinding.etName.setText(it) }
         prefilledPhone?.let { dialogBinding.etPhone.setText(it) }
-        dialogBinding.spinnerRingtone.adapter = ringtoneAdapter
+        dialogBinding.spinnerRingtone.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
         AlertDialog.Builder(this)
             .setView(dialogBinding.root)
@@ -430,7 +427,9 @@ class MainActivity : AppCompatActivity() {
         val etName = dialogView.findViewById<EditText>(R.id.etRuleName)
         val etPattern = dialogView.findViewById<EditText>(R.id.etRulePattern)
         val spinnerRingtone = dialogView.findViewById<Spinner>(R.id.spinnerRingtone)
-        spinnerRingtone.adapter = ringtoneAdapter
+        spinnerRingtone.adapter = ArrayAdapter(this, android.R.layout.simple_spinner_item, ringtoneOptions).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
 
         AlertDialog.Builder(this)
             .setTitle("添加内容规则")

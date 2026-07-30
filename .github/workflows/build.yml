@@ -56,15 +56,20 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -f app/smsalert-release.jks ] && [ -n "$KEYSTORE_PASSWORD" ]; then
+          BUILD_TYPE="${{ github.event.inputs.build_type || 'release' }}"
+          if [ "$BUILD_TYPE" = "debug" ]; then
+            echo "Workflow dispatch requested debug build"
+            ./gradlew :app:assembleDebug
+          elif [ -f app/smsalert-release.jks ] && [ -n "$KEYSTORE_PASSWORD" ]; then
             ./gradlew :app:assembleRelease
           else
+            echo "Keystore not available, falling back to debug"
             ./gradlew :app:assembleDebug
           fi
 
       - name: Rename APK
         run: |
-          VERSION=$(grep 'versionName' app/build.gradle | sed 's/.*"\(.*\)".*/\1/')
+          VERSION=$(grep -oP 'versionName\s+"\K[^"]+' app/build.gradle)
           echo "App version: $VERSION"
           if ls app/build/outputs/apk/release/*.apk >/dev/null 2>&1; then
             for apk in app/build/outputs/apk/release/*.apk; do

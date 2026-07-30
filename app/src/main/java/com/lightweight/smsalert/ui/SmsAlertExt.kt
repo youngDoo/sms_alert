@@ -1,6 +1,6 @@
 package com.lightweight.smsalert.ui
 
-import android.content.res.Resources
+import android.content.Context
 
-/** 像素 → dp 转换工具 */
-fun Int.dp(): Int = (this * Resources.getSystem().displayMetrics.density).toInt()
+/** dp → px 转换，使用指定 Context 的 DisplayMetrics（比 Resources.getSystem() 更准确） */
+fun Context.dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

@@ -25,3 +25,4 @@ local.properties
 tasks/
 historical_context.txt
 .worktrees/
+keystore-base64.txt
