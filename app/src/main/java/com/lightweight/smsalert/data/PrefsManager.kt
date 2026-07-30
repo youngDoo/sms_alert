@@ -172,9 +172,5 @@ class PrefsManager(context: Context) {
 
     internal fun normalizePhone(phone: String): String = PhoneUtils.normalize(phone)
 
-    internal fun isSamePhoneNumber(p1: String, p2: String): Boolean {
-        val n1 = normalizePhone(p1)
-        val n2 = normalizePhone(p2)
-        return n1 == n2 || n1.endsWith(n2) || n2.endsWith(n1)
-    }
+    internal fun isSamePhoneNumber(p1: String, p2: String): Boolean = PhoneUtils.isSame(p1, p2)
 }

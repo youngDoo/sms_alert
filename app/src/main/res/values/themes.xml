@@ -1,29 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 主主题：Material3 + 挖孔屏适配 + Edge-to-Edge -->
+    <!--
+        主主题：Material3 + Dynamic Color + Edge-to-Edge
+        - Light 主题使用 Theme.Material3.Light.NoActionBar
+        - Android 12+ 通过 SmsAlertApplication 中的 DynamicColors 自动取色
+          （取色后 colorPrimary 等被覆盖；以下值作为 Android 11 以下的回退）
+    -->
     <style name="Theme.SmsAlertTool" parent="Theme.Material3.Light.NoActionBar">
-        <!-- Material3 动态取色基础 -->
-        <item name="colorPrimary">@color/primary</item>
-        <item name="colorOnPrimary">@color/text_on_primary</item>
-        <item name="colorPrimaryContainer">@color/primary_container</item>
-        <item name="colorOnPrimaryContainer">@color/primary_dark</item>
-        <item name="colorSurface">@color/bg_surface</item>
-        <item name="colorOnSurface">@color/text_main</item>
-        <item name="colorSurfaceVariant">@color/bg_surface_variant</item>
-        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <!-- MD3 品牌色（Dynamic Color 回退） -->
+        <item name="colorPrimary">@color/md_theme_light_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
+        <item name="colorPrimaryContainer">@color/md_theme_light_primaryContainer</item>
+        <item name="colorOnPrimaryContainer">@color/md_theme_light_onPrimaryContainer</item>
+        <item name="colorSecondary">@color/md_theme_light_secondary</item>
+        <item name="colorOnSecondary">@color/md_theme_light_onSecondary</item>
+        <item name="colorSecondaryContainer">@color/md_theme_light_secondaryContainer</item>
+        <item name="colorOnSecondaryContainer">@color/md_theme_light_onSecondaryContainer</item>
+        <item name="colorTertiary">@color/md_theme_light_tertiary</item>
+        <item name="colorOnTertiary">@color/md_theme_light_onTertiary</item>
+        <item name="colorTertiaryContainer">@color/md_theme_light_tertiaryContainer</item>
+        <item name="colorOnTertiaryContainer">@color/md_theme_light_onTertiaryContainer</item>
+        <item name="colorSurface">@color/md_theme_light_surface</item>
+        <item name="colorOnSurface">@color/md_theme_light_onSurface</item>
+        <item name="colorSurfaceVariant">@color/md_theme_light_surfaceVariant</item>
+        <item name="colorOnSurfaceVariant">@color/md_theme_light_onSurfaceVariant</item>
+        <item name="colorError">@color/md_theme_light_error</item>
+        <item name="colorOnError">@color/md_theme_light_onError</item>
         <item name="android:windowBackground">@color/bg_light</item>
 
-        <!-- Edge-to-Edge：透明状态栏/导航栏，内容延伸到系统栏区域 -->
+        <!-- Edge-to-Edge -->
         <item name="android:statusBarColor">@android:color/transparent</item>
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowLightStatusBar">true</item>
         <item name="android:windowLightNavigationBar">true</item>
 
-        <!-- 挖孔屏/刘海屏适配：允许内容延伸到挖孔区域 -->
+        <!-- 挖孔屏/刘海屏适配 -->
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>
 
     <!-- AlertActivity 悬浮弹窗主题（锁屏+亮屏强提醒） -->
     <style name="Theme.SmsAlertTool.AlertActivity" parent="Theme.Material3.Light.Dialog">
+        <item name="colorPrimary">@color/md_theme_light_primary</item>
+        <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
+        <item name="colorSurface">@color/md_theme_light_surface</item>
+        <item name="colorOnSurface">@color/md_theme_light_onSurface</item>
+        <item name="colorError">@color/md_theme_light_error</item>
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowContentOverlay">@null</item>
         <item name="android:windowIsTranslucent">true</item>

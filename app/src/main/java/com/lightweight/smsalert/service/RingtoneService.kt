@@ -195,7 +195,9 @@ class RingtoneService : Service(), AudioManager.OnAudioFocusChangeListener {
         val alertPi = PendingIntent.getActivity(this, 3002,
             Intent(this, AlertActivity::class.java).apply {
                 flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
-                putExtra("sender_name", name); putExtra("sender_phone", phone); putExtra("sms_body", "")
+                putExtra("sender_name", name)
+                putExtra("sender_phone", phone)
+                putExtra("sms_body", lastSmsBody)
             }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val n = NotificationCompat.Builder(this, CHANNEL_ID_RINGING)
             .setContentTitle("短信钉 — $name 来信").setContentText(phone)
