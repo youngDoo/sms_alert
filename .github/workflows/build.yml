@@ -105,13 +105,20 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-
       - name: Download APK artifact
         uses: actions/download-artifact@v4
         with:
           name: ${{ needs.build.outputs.artifact_name }}
           path: dist/
+
+      - name: Verify artifact
+        run: |
+          echo "Artifact contents:"
+          ls -laR dist/
+          if ! ls dist/*.apk >/dev/null 2>&1; then
+            echo "ERROR: No APK found in artifact"
+            exit 1
+          fi
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
