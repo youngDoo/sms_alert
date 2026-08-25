@@ -77,11 +77,13 @@
                         android:gravity="center_vertical">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
+                            android:layout_width="36dp"
+                            android:layout_height="36dp"
+                            android:padding="8dp"
+                            android:background="@drawable/bg_icon_container"
                             android:src="@drawable/ic_sms_monitor"
                             app:tint="?attr/colorPrimary"
-                            android:layout_marginEnd="10dp" />
+                            android:layout_marginEnd="12dp" />
 
                         <LinearLayout
                             android:layout_width="0dp"
@@ -400,6 +402,12 @@
                 android:layout_marginTop="20dp"
                 android:layout_marginBottom="4dp">
 
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="16dp"
+                    android:background="@drawable/bg_accent_bar"
+                    android:layout_marginEnd="8dp" />
+
                 <TextView
                     android:id="@+id/tvContactsTitle"
                     android:layout_width="0dp"
@@ -455,11 +463,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="暂无特别关注联系人\n点击上方「导入」或「添加」按钮新增"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:gravity="center"
-                android:paddingVertical="32dp"
+                android:background="@drawable/bg_empty_state"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="28dp"
                 android:lineSpacingExtra="4dp"
+                android:layout_marginTop="4dp"
                 android:visibility="gone" />
 
             <!-- ========== 内容规则标题 + 操作 ========== -->
@@ -471,6 +482,12 @@
                 android:gravity="center_vertical"
                 android:layout_marginTop="16dp"
                 android:layout_marginBottom="4dp">
+
+                <View
+                    android:layout_width="4dp"
+                    android:layout_height="16dp"
+                    android:background="@drawable/bg_accent_bar"
+                    android:layout_marginEnd="8dp" />
 
                 <TextView
                     android:id="@+id/tvContentRulesTitle"
@@ -516,11 +533,14 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="暂无内容规则\n点击上方「添加」按钮新增关键词规则"
-                android:textSize="14sp"
+                android:textSize="13sp"
                 android:textColor="?attr/colorOnSurfaceVariant"
                 android:gravity="center"
-                android:paddingVertical="32dp"
+                android:background="@drawable/bg_empty_state"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="28dp"
                 android:lineSpacingExtra="4dp"
+                android:layout_marginTop="4dp"
                 android:visibility="visible" />
 
         </LinearLayout>
